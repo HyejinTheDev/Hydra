@@ -1,0 +1,28 @@
+# ===== DỮ LIỆU RIÊNG — KHÔNG BAO GIỜ ĐẨY LÊN GIT =====
+# data/: cookie đăng nhập các tài khoản (profiles), CSDL tài khoản + link affiliate (app.db),
+#        video, ảnh chụp màn hình lỗi
+data/
+*.db
+*.db-journal
+*.sqlite*
+
+# Môi trường Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+
+# Bí mật / cấu hình máy
+.env
+.env.*
+*.pem
+*.key
+cookies*.txt
+.claude/
+
+# File tạm
+*.part
+*.log
+*.tmp
+Thumbs.db
+desktop.ini

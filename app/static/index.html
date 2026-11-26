@@ -1,0 +1,2142 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Đăng video đa nền tảng</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --card: #fff; --text: #1d2330; --muted: #6b7385; --line: #e3e6ec;
+    --primary: #2f6fed; --primary-ink: #fff; --ok: #1a8f4c; --err: #c9372c; --warn: #b7791f;
+    --youtube: #e62117; --tiktok: #111; --facebook: #1877f2; --instagram: #c13584;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #14161b; --card: #1c1f26; --text: #e6e8ee; --muted: #9aa2b4; --line: #2c313b; --tiktok: #e6e8ee; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.5 system-ui, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+  header { display: flex; align-items: center; gap: 24px; padding: 12px 24px; background: var(--card); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 5; flex-wrap: wrap; }
+  header h1 { font-size: 17px; margin: 0; }
+  nav { display: flex; gap: 4px; flex-wrap: wrap; }
+  nav button { background: none; border: 0; padding: 8px 14px; border-radius: 8px; color: var(--muted); cursor: pointer; font: inherit; }
+  nav button.active { background: var(--bg); color: var(--text); font-weight: 600; }
+  .badge { display: inline-block; min-width: 18px; padding: 0 6px; border-radius: 9px; background: var(--primary); color: #fff; font-size: 11px; margin-left: 4px; }
+  main { max-width: 1100px; margin: 0 auto; padding: 24px 16px 64px; }
+  section { display: none; } section.active { display: block; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+  .card h2 { font-size: 15px; margin: 0 0 14px; }
+  label { display: block; font-weight: 600; margin: 12px 0 6px; font-size: 13px; }
+  input[type=text], input[type=datetime-local], input[type=number], textarea, select {
+    width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--text); font: inherit;
+  }
+  textarea { min-height: 80px; resize: vertical; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
+  .row > * { flex: 1 1 200px; }
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); color: var(--text); cursor: pointer; font: inherit; white-space: nowrap; }
+  .btn:hover { border-color: var(--muted); }
+  .btn.primary { background: var(--primary); color: var(--primary-ink); border-color: var(--primary); font-weight: 600; }
+  .btn.danger { color: var(--err); }
+  .btn.sm { padding: 4px 10px; font-size: 12px; }
+  .btn:disabled { opacity: .5; cursor: default; }
+  .muted { color: var(--muted); font-size: 13px; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 12px; color: var(--muted); font-weight: 600; }
+  td input[type=text] { padding: 5px 8px; }
+  .table-wrap { overflow-x: auto; }
+  .pf { display: inline-block; padding: 1px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; color: #fff; }
+  .pf.youtube { background: var(--youtube); } .pf.tiktok { background: #111; } .pf.facebook { background: var(--facebook); } .pf.instagram { background: var(--instagram); } .pf.threads { background: #000; }
+  .st { font-weight: 600; font-size: 12px; }
+  .st.pending { color: var(--warn); } .st.running { color: var(--primary); } .st.success { color: var(--ok); } .st.failed { color: var(--err); } .st.cancelled { color: var(--muted); }
+  .pick-grp { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; }
+  .pick-grp.on { border-color: color-mix(in srgb, var(--primary) 55%, var(--line)); }
+  .pick-head { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; cursor: pointer; font-size: 14px; }
+  .pick-head input { width: 16px; height: 16px; }
+  .pick-count { font-weight: 400; font-size: 12px; margin-left: auto; }
+  .pick-list { display: flex; flex-wrap: wrap; gap: 6px; }
+  .ch-cmt { display: flex; gap: 8px; align-items: center; margin-top: 8px; font-size: 12.5px; }
+  .ch-cmt span { white-space: nowrap; }
+  .ch-cmt input { flex: 1; min-width: 0; padding: 5px 8px; font-size: 12.5px; }
+  .cc-in { width: 100%; min-width: 220px; padding: 5px 8px; font-size: 12.5px; }
+  .gem-tabs { display: flex; flex-direction: column; gap: 3px; font-size: 12px; }
+  .gem-tab { display: flex; gap: 6px; align-items: center; min-width: 0; }
+  .gem-tab .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex: none; }
+  .gem-tab .dot.busy { background: var(--primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 25%, transparent); }
+  .gem-tab .txt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .gem-bar { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; min-width: 90px; margin-top: 4px; }
+  .gem-bar i { display: block; height: 100%; background: var(--ok); }
+  tr.dy-done td { background: color-mix(in srgb, var(--ok) 9%, transparent); }
+  tr.dy-done td:nth-child(4) { opacity: .75; }
+  tr.dy-cur td { background: color-mix(in srgb, var(--primary) 10%, transparent); }
+  .dy-ava { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; flex: 0 0 auto; background: var(--line); }
+  .dy-ch { display: flex; gap: 10px; align-items: center; }
+  .dy-lbl { font-weight: 700; }
+  .dy-new { color: var(--warn); font-weight: 600; }
+  .btn[hidden] { display: none !important; }
+  .ep-pill { display: inline-block; padding: 1px 7px; border-radius: 6px; font-size: 11px; font-weight: 700; background: var(--line); margin-right: 4px; vertical-align: 1px; white-space: nowrap; }
+  .ep-pill.comp { background: #8e44ad; color: #fff; }
+  tr.dy-grp td { background: var(--bg); border-top: 2px solid var(--line); padding-top: 10px; padding-bottom: 10px; }
+  .tag-new { display: inline-block; padding: 1px 7px; border-radius: 6px; background: #e5484d; color: #fff; font-size: 11px; font-weight: 700; letter-spacing: .3px; vertical-align: 1px; margin-right: 4px; }
+  tr.dy-isnew td { background: color-mix(in srgb, #e5484d 7%, transparent); }
+  .gem-pick { display: flex; flex-wrap: wrap; gap: 6px; }
+  .ch-sum { margin-top: 8px; font-size: 12.5px; cursor: pointer; display: flex; gap: 8px; align-items: center; }
+  .ch-sum .txt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 1; }
+  .tray { display: grid; gap: 10px; margin-top: 8px; }
+  .tray-item { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: grid; grid-template-columns: 210px 1fr; gap: 12px; align-items: start; }
+  .tray-item.off { opacity: .55; }
+  .tray-item.off textarea { text-decoration: line-through; }
+  .tray-item textarea { width: 100%; min-height: 54px; font-size: 12.5px; resize: vertical; }
+  .tray-name { font-weight: 700; display: flex; flex-direction: column; gap: 6px; }
+  .tray-name .muted { font-weight: 400; font-size: 12px; }
+  .switch { position: relative; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-size: 12.5px; font-weight: 600; margin: 0; }
+  .switch input { position: absolute; opacity: 0; pointer-events: none; }
+  .switch .sw { width: 38px; height: 21px; border-radius: 999px; background: #777; position: relative; transition: background .15s; flex: none; }
+  .switch .sw::after { content: ""; position: absolute; top: 3px; left: 3px; width: 15px; height: 15px; border-radius: 50%; background: #fff; transition: left .15s; }
+  .switch input:checked + .sw { background: #2e9d5b; }
+  .switch input:checked + .sw::after { left: 20px; }
+  @media (max-width: 700px) { .tray-item { grid-template-columns: 1fr; } }
+  .pill { display: inline-flex; align-items: center; gap: 6px; margin: 0; padding: 5px 10px 5px 6px; border-radius: 999px; cursor: pointer;
+          border: 1px solid var(--line); font-weight: 400; font-size: 13px; user-select: none; }
+  .pill input { position: absolute; opacity: 0; pointer-events: none; }
+  .pill-pf { font-size: 11.5px; font-weight: 700; padding: 1px 8px; border-radius: 999px; color: #fff; background: var(--c); }
+  .pill-name { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pill::before { content: ""; width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid var(--muted); flex: none; }
+  .pill:has(input:checked) { border-color: var(--c); background: color-mix(in srgb, var(--c) 16%, transparent); }
+  .pill:has(input:checked)::before { border-color: var(--c); background: var(--c); box-shadow: inset 0 0 0 2px var(--card); }
+  .pill:has(input:focus-visible) { outline: 2px solid var(--primary); outline-offset: 2px; }
+  .acc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
+  .acc-pick { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; font-weight: 400; margin: 0; }
+  .acc-pick:has(input:checked) { border-color: var(--primary); background: color-mix(in srgb, var(--primary) 8%, transparent); }
+  .drop { border: 2px dashed var(--line); border-radius: 10px; padding: 18px; text-align: center; color: var(--muted); }
+  .drop.over { border-color: var(--primary); color: var(--primary); }
+  .err-text { color: var(--err); font-size: 12px; max-width: 360px; word-break: break-word; }
+  a { color: var(--primary); }
+  #toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 10px 18px; border-radius: 8px; opacity: 0; transition: opacity .2s; pointer-events: none; max-width: 90vw; }
+  #toast.show { opacity: 1; }
+  .help li { margin: 4px 0; }
+  .empty { text-align: center; color: var(--muted); padding: 24px; }
+  .vthumb { width: 54px; padding: 4px 6px; }
+  .vthumb img, .vthumb .noimg { width: 45px; height: 80px; object-fit: cover; border-radius: 6px; display: block; background: #000; }
+  .vthumb .noimg { display: grid; place-items: center; background: var(--bg); font-size: 18px; }
+  .ocr-st { font-size: 12px; margin-top: 4px; color: var(--muted); }
+  .ocr-st.ok { color: var(--ok); } .ocr-st.err { color: var(--err); } .ocr-st.busy, .ocr-st.wait { color: var(--primary); }
+  .daily { border: 1px dashed color-mix(in srgb, var(--primary) 50%, var(--line)); border-radius: 10px; padding: 12px 14px; margin-top: 12px; }
+  #dailySlots { display: contents; }
+  .slotpill { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line);
+              background: var(--card); color: var(--muted); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+  .slotpill.on { border-color: var(--primary); background: var(--primary); color: #fff; }
+  .daily-prev { margin-top: 10px; max-height: 260px; overflow: auto; font-size: 13px; }
+  .daily-prev table td { padding: 4px 6px; }
+  .daily-prev .dayhead td { background: var(--bg); font-weight: 600; color: var(--muted); font-size: 12px; }
+  .vcmt { margin-top: 6px; font-size: 13px; padding: 5px 8px; }
+  .note-text { font-size: 12px; margin-top: 3px; }
+  .plat-box { margin-top: 12px; padding: 10px 12px; border-radius: 10px; background: color-mix(in srgb, var(--primary) 7%, transparent); }
+  .up-at { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .saved-note { font-weight: 400; font-size: 12px; color: var(--ok); margin-left: 6px; }
+  .quick { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+  .quick #presetBtns { display: contents; }
+  .preset { display: inline-flex; align-items: stretch; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .preset button { border: 0; background: var(--card); color: var(--text); font: inherit; font-size: 13px; padding: 5px 10px; cursor: pointer; }
+  .preset button:first-child { font-weight: 600; }
+  .preset button:first-child:hover { background: color-mix(in srgb, var(--primary) 15%, var(--card)); }
+  .preset.active { border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary); }
+  .preset.active button:first-child { background: var(--primary); color: #fff; }
+  .preset .x { padding: 5px 7px; color: var(--muted); border-left: 1px solid var(--line); }
+  .preset .x:hover { color: var(--err); }
+  tr.grp td { background: var(--bg); border-bottom: 1px solid var(--line); padding: 8px 10px; }
+  .grp-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin-right: 8px; }
+  .seg button { border: 0; background: var(--card); color: var(--muted); padding: 5px 12px; cursor: pointer; font: inherit; font-size: 13px; }
+  .seg button.on { background: var(--primary); color: #fff; font-weight: 600; }
+  .week { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .wk-row { display: grid; grid-template-columns: 56px repeat(7, minmax(0, 1fr)); }
+  .wk-head { background: var(--bg); border-bottom: 1px solid var(--line); }
+  .wk-head > div { padding: 6px 4px; text-align: center; font-size: 12px; color: var(--muted); border-right: 1px solid var(--line); }
+  .wk-dh b { display: block; font-size: 18px; color: var(--text); line-height: 1.3; }
+  .wk-dh span { display: block; font-size: 11px; }
+  .wk-dh.today b { color: var(--primary); }
+  .wk-body { max-height: 620px; overflow-y: auto; position: relative; }
+  .wk-hour { font-size: 11px; color: var(--muted); text-align: right; padding: 2px 6px 0 0; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+  .slot { min-height: 44px; padding: 2px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 2px; cursor: pointer; }
+  .slot:not(.past):hover { background: color-mix(in srgb, var(--primary) 7%, transparent); }
+  .slot:not(.past):empty:hover::after { content: "+ Lên lịch"; font-size: 11px; color: var(--primary); margin: auto; }
+  .slot.past { background: color-mix(in srgb, var(--bg) 55%, transparent); cursor: default; }
+  .slot.now { box-shadow: inset 0 2px 0 var(--err); }
+  .slot.drop-over { outline: 2px solid var(--primary); outline-offset: -2px; background: color-mix(in srgb, var(--primary) 10%, transparent); }
+  /* ---- Tồn kho video theo kênh ---- */
+  .badge.warn { background: var(--err); }
+  .stk-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+  .stk-top h2 { margin: 0; }
+  .stk-sums { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; font-size: 12.5px; }
+  .stk-pill { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 999px; font-weight: 600; font-size: 12px; border: 1px solid var(--line); }
+  .stk-pill.empty { color: var(--err); border-color: color-mix(in srgb, var(--err) 45%, var(--line)); background: color-mix(in srgb, var(--err) 10%, transparent); }
+  .stk-pill.low { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 45%, var(--line)); background: color-mix(in srgb, var(--warn) 10%, transparent); }
+  .stk-pill.ok { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 45%, var(--line)); background: color-mix(in srgb, var(--ok) 10%, transparent); }
+  .stk-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 12px; }
+  .stk-card { border: 1px solid var(--line); border-left: 4px solid var(--muted); border-radius: 10px; padding: 12px 14px; background: var(--card); display: flex; flex-direction: column; gap: 8px; transition: border-color .15s, box-shadow .15s; }
+  .stk-card.empty { border-left-color: var(--err); background: color-mix(in srgb, var(--err) 4%, var(--card)); }
+  .stk-card.low { border-left-color: var(--warn); background: color-mix(in srgb, var(--warn) 4%, var(--card)); }
+  .stk-card.ok { border-left-color: var(--ok); }
+  .stk-card.active { outline: 2px solid var(--primary); outline-offset: -1px; }
+  .stk-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .stk-name { font-weight: 700; font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .stk-main { font-size: 13px; display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; align-items: baseline; }
+  .stk-bar { height: 6px; border-radius: 999px; background: var(--line); overflow: hidden; }
+  .stk-bar i { display: block; height: 100%; border-radius: 999px; }
+  .stk-card.empty .stk-bar i { background: var(--err); }
+  .stk-card.low .stk-bar i { background: var(--warn); }
+  .stk-card.ok .stk-bar i { background: var(--ok); }
+  .stk-pfs { display: flex; gap: 6px; flex-wrap: wrap; }
+  .stk-pf { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; padding: 2px 8px; border-radius: 6px; background: var(--bg); border: 1px solid var(--line); }
+  .stk-pf i { width: 7px; height: 7px; border-radius: 50%; background: var(--c); display: inline-block; }
+  .stk-pf.short { border-color: color-mix(in srgb, var(--err) 60%, var(--line)); color: var(--err); font-weight: 600; }
+  .stk-acts { display: flex; gap: 6px; margin-top: auto; padding-top: 2px; }
+  .stk-acts .btn { flex: 1; justify-content: center; }
+  .pick-stk { font-size: 11.5px; font-weight: 600; padding: 1px 8px; border-radius: 999px; }
+  .pick-stk.empty { color: var(--err); background: color-mix(in srgb, var(--err) 12%, transparent); }
+  .pick-stk.low { color: var(--warn); background: color-mix(in srgb, var(--warn) 14%, transparent); }
+  .pick-stk.ok { color: var(--ok); background: color-mix(in srgb, var(--ok) 12%, transparent); }
+  /* ---- Lịch ---- */
+  .cal-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+  .cal-bar h2 { margin: 0 8px; min-width: 150px; text-align: center; }
+  .legend { display: flex; gap: 10px; flex-wrap: wrap; margin-left: auto; font-size: 12px; color: var(--muted); }
+  .legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 4px; vertical-align: -1px; background: var(--c); }
+  .cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border-top: 1px solid var(--line); border-left: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .cal .dow { padding: 6px; font-size: 12px; font-weight: 600; color: var(--muted); text-align: center; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); background: var(--bg); }
+  .day { min-height: 118px; padding: 4px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); position: relative; display: flex; flex-direction: column; gap: 3px; }
+  .day.other { background: color-mix(in srgb, var(--bg) 60%, transparent); }
+  .day.other .dnum { opacity: .45; }
+  .day.today .dnum { background: var(--primary); color: #fff; }
+  .day.past { background: color-mix(in srgb, var(--bg) 35%, transparent); }
+  .day.drop-over { outline: 2px solid var(--primary); outline-offset: -2px; background: color-mix(in srgb, var(--primary) 8%, transparent); }
+  .dhead { display: flex; align-items: center; justify-content: space-between; }
+  .dnum { font-size: 12px; font-weight: 600; width: 22px; height: 22px; line-height: 22px; text-align: center; border-radius: 50%; }
+  .dadd { opacity: 0; border: 0; background: none; color: var(--primary); cursor: pointer; font-size: 16px; line-height: 1; padding: 0 4px; }
+  .day:hover .dadd { opacity: 1; }
+  .chip { display: flex; align-items: center; gap: 4px; font-size: 11.5px; padding: 2px 5px; border-radius: 5px; cursor: pointer; white-space: nowrap; overflow: hidden;
+          background: color-mix(in srgb, var(--c) 14%, var(--card)); border-left: 3px solid var(--c); }
+  .chip[draggable=true] { cursor: grab; }
+  .chip .t { font-variant-numeric: tabular-nums; color: var(--muted); }
+  .chip .n { overflow: hidden; text-overflow: ellipsis; }
+  .chip.cancelled .n { text-decoration: line-through; opacity: .6; }
+  .chip.failed { box-shadow: inset 0 0 0 1px var(--err); }
+  .chip .acc { font-size: 10px; color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 0 3px; flex: none; }
+  .chip .dots { display: flex; gap: 2px; margin-left: auto; padding-left: 4px; flex: none; }
+  .chip .dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--c); display: block; }
+  .chip .dots i.pending { opacity: .45; } .chip .dots i.failed { box-shadow: 0 0 0 1.5px var(--err); }
+  .grow { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; font-size: 13px; }
+  .grow:hover { background: var(--bg); }
+  .more { font-size: 11.5px; color: var(--primary); background: none; border: 0; text-align: left; cursor: pointer; padding: 0 5px; }
+  dialog { border: 1px solid var(--line); border-radius: 12px; background: var(--card); color: var(--text); padding: 20px; width: min(520px, calc(100vw - 32px)); }
+  dialog::backdrop { background: rgb(0 0 0 / .4); }
+  dialog h3 { margin: 0 0 12px; font-size: 15px; }
+  .kv { display: grid; grid-template-columns: 110px 1fr; gap: 6px 10px; font-size: 13px; }
+  .kv dt { color: var(--muted); } .kv dd { margin: 0; word-break: break-word; }
+  .dlg-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; justify-content: flex-end; }
+  @media (max-width: 640px) {
+    header { padding: 10px 16px; } main { padding: 16px 16px 48px; }
+    .day { min-height: 64px; padding: 2px; }
+    .chip { padding: 0; height: 6px; border-left-width: 0; background: var(--c); }
+    .chip .t, .chip .n, .chip .s { display: none; }
+    .legend { margin-left: 0; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>🎬 Đăng video đa nền tảng</h1>
+  <nav>
+    <button data-tab="post" class="active">Đăng video</button>
+    <button data-tab="calendar">Lịch <span class="badge warn" id="calLowCount" style="display:none" title="Số kênh hết hoặc sắp hết video">0</span></button>
+    <button data-tab="queue">Hàng đợi <span class="badge" id="qcount">0</span></button>
+    <button data-tab="history">Lịch sử</button>
+    <button data-tab="comments">Gắn bình luận</button>
+    <button data-tab="douyin">Tải Douyin <span class="badge" id="dyBadge" style="display:none">0</span></button>
+    <button data-tab="gemini">Dịch video <span class="badge" id="gcount" style="display:none">0</span></button>
+    <button data-tab="accounts">Tài khoản</button>
+    <button data-tab="settings">Cài đặt</button>
+    <button id="pauseBtn" type="button" onclick="togglePause()" style="margin-left:12px">⏸ Tạm dừng</button>
+  </nav>
+</header>
+
+<main>
+  <!-- ĐĂNG VIDEO -->
+  <section id="post" class="active">
+    <div class="card">
+      <h2>1. Chọn video</h2>
+      <div class="drop" id="drop">
+        Kéo thả video vào đây hoặc
+        <button class="btn sm" onclick="document.getElementById('filepick').click()">Chọn file…</button>
+        <input type="file" id="filepick" accept="video/*" multiple hidden>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <div><label>Hoặc nhập đường dẫn thư mục trên máy (đăng hàng loạt)</label>
+          <input type="text" id="folder" placeholder="VD: D:\Videos\thang11"></div>
+        <div style="flex:0 0 auto"><button class="btn" onclick="scanFolder()">Quét thư mục</button></div>
+      </div>
+      <div class="quick" style="margin-top:12px">
+        <label class="acc-pick" style="padding:6px 10px"><input type="checkbox" id="autoOcr" checked>
+          🔍 Tự đọc tiêu đề từ chữ trên video</label>
+        <button class="btn sm" id="ocrAll" hidden>Đọc lại tiêu đề tất cả</button>
+      </div>
+      <div class="table-wrap">
+        <table id="vtable" hidden>
+          <thead><tr><th>#</th><th></th><th>File</th><th style="width:48%">Tiêu đề</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p class="muted" id="vempty">Chưa có video nào.</p>
+    </div>
+
+    <div class="card">
+      <h2>2. Nội dung chung</h2>
+      <label>Mô tả</label>
+      <textarea id="desc" placeholder="Mô tả video (dùng cho tất cả video)"></textarea>
+      <label>Hashtag <span class="saved-note" id="tagsNote"></span></label>
+      <input type="text" id="tags" placeholder="vd: review congnghe, xuhuong">
+      <div class="muted" style="font-size:12px;margin-top:4px">📌 Hashtag được <b>lưu cố định</b> — tự điền sẵn cho mọi video, kể cả khi tắt mở lại tool. Muốn đổi thì sửa trực tiếp ở đây.</div>
+      <div class="muted" style="font-size:12.5px;margin-top:12px">💬 <b>Bình luận affiliate</b> (Facebook, Threads) lấy theo <b>link của từng kênh</b> trong
+        <a href="#" onclick="openTray();return false">khay link (tab Gắn bình luận)</a>. Video nào cần link khác → bấm <b>💬</b> ở dòng video đó.
+        Kênh chưa có link hoặc đang tắt → không bình luận.</div>
+      <div class="row">
+        <div><label>Chế độ hiển thị YouTube</label>
+          <select id="ytvis"><option value="PUBLIC">Công khai</option><option value="UNLISTED">Không công khai</option><option value="PRIVATE">Riêng tư</option></select></div>
+      </div>
+      <p class="muted">TikTok, Facebook, Instagram, Threads: chú thích = Tiêu đề + Mô tả + Hashtag. YouTube: hashtag được thêm vào cuối mô tả.</p>
+    </div>
+
+    <div class="card">
+      <h2>3. Chọn tài khoản</h2>
+      <div class="quick" id="accQuick"></div>
+      <div id="accpick"></div>
+      <p class="muted" id="accempty" hidden>Chưa có tài khoản. Vào tab <b>Tài khoản</b> để thêm.</p>
+    </div>
+
+    <div class="card">
+      <h2>4. Thời gian đăng</h2>
+      <div class="quick">
+        <span class="muted">Giờ đăng nhanh:</span>
+        <span id="presetBtns"></span>
+        <button class="btn sm" onclick="editPreset()" title="Tạo nút mới và chọn giờ cho nút">＋ Thêm nút</button>
+        <button class="btn sm" onclick="savePreset()" title="Lưu giờ và khoảng cách đang đặt bên dưới thành một nút">Lưu giờ đang đặt</button>
+      </div>
+      <div class="row">
+        <div><label><input type="radio" name="when" value="now" checked> Đăng ngay</label>
+             <label><input type="radio" name="when" value="later"> Hẹn giờ</label>
+             <label><input type="radio" name="when" value="daily"> 📅 Rải nhiều ngày theo khung giờ</label></div>
+        <div class="tm-single"><label>Bắt đầu lúc</label><input type="datetime-local" id="startAt" disabled></div>
+        <div class="tm-single"><label>Cách nhau (phút) giữa các video</label><input type="number" id="interval" min="0" value="0"></div>
+      </div>
+      <div id="dailyBox" class="daily" hidden>
+        <div class="row">
+          <div style="flex:0 1 220px"><label>Bắt đầu từ ngày</label><input type="date" id="dailyStart"></div>
+          <div style="flex:3 1 360px"><label>Khung giờ đăng mỗi ngày <span class="muted" style="font-weight:400">(bấm để bật/tắt)</span></label>
+            <div class="quick" style="margin:0"><span id="dailySlots"></span>
+              <input type="time" id="dailyNew" style="width:120px;padding:4px 8px"><button class="btn sm" id="dailyAddBtn">＋ Thêm giờ</button></div></div>
+        </div>
+        <label class="acc-pick" style="display:inline-flex;margin-top:10px;padding:6px 10px"><input type="checkbox" id="dailyAfter" checked>
+          Nối tiếp sau các bài đã hẹn (bỏ qua khung giờ đã có bài của tài khoản đã chọn)</label>
+        <div id="dailyPreview" class="daily-prev"></div>
+      </div>
+      <div id="platBox" class="plat-box" hidden>
+        <label class="acc-pick" style="display:inline-flex;padding:8px 12px"><input type="checkbox" id="platSched">
+          <b>☁ Hẹn giờ trên nền tảng</b> <span class="saved-note" id="platNote"></span>&nbsp;— tải video lên ngay, đến giờ nền tảng tự đăng, <b>tắt máy được</b></label>
+        <div class="muted" style="font-size:12px;margin-top:6px;line-height:1.6">
+          Áp dụng cho YouTube, TikTok, Facebook, Threads (Instagram vẫn cần máy bật đúng giờ).
+          TikTok chỉ cho hẹn trước khoảng 9 ngày, Facebook/Threads khoảng 4 tuần — bài xa hơn sẽ được tải lên khi gần tới ngày (lúc đó máy cần bật).
+          Bình luận affiliate được gắn <b>sau khi bài lên sóng</b>, vào lần tới bạn mở tool. TikTok hẹn theo bước 5 phút.</div>
+      </div>
+      <p class="muted" id="plan"></p>
+      <div style="margin-top:12px"><button class="btn primary" id="submit" onclick="submitJobs()">Thêm vào hàng đợi</button></div>
+    </div>
+  </section>
+
+  <!-- LỊCH -->
+  <section id="calendar">
+    <div class="card">
+      <div class="stk-top">
+        <div>
+          <h2>📊 Tình trạng kho video các kênh</h2>
+          <div class="muted" style="font-size:12.5px;margin-top:2px">Theo dõi mỗi kênh còn bao nhiêu video chưa lên sóng, đủ đến ngày nào và kênh nào cần nạp thêm ngay.</div>
+        </div>
+        <div class="stk-sums" id="stkSummary"></div>
+      </div>
+      <div class="stk-grid" id="stkGrid"></div>
+    </div>
+    <div class="card">
+      <div class="cal-bar">
+        <div class="seg" id="calViews"><button data-v="week" onclick="setCalView('week')">Tuần</button><button data-v="month" onclick="setCalView('month')">Tháng</button></div>
+        <button class="btn sm" id="calPrev" onclick="calMove(-1)">‹</button>
+        <h2 id="calTitle"></h2>
+        <button class="btn sm" id="calNext" onclick="calMove(1)">›</button>
+        <button class="btn sm" onclick="calMove(0)">Hôm nay</button>
+        <select id="calAcc" onchange="setCalAcc(this.value)" style="width:auto;max-width:220px" title="Xem lịch theo kênh"></select>
+        <div class="legend" id="legend"></div>
+      </div>
+      <div class="cal" id="cal"></div>
+      <p class="muted"><b>Tuần:</b> bấm vào ô giờ trống để lên lịch đăng đúng giờ đó; kéo bài sang ô giờ khác để đổi ngày/giờ. <b>Tháng:</b> bấm <b>+</b> trên một ngày rồi chọn giờ; kéo bài sang ngày khác (giữ nguyên giờ). Bấm vào bài để xem chi tiết hoặc sửa giờ chính xác.</p>
+    </div>
+  </section>
+
+  <dialog id="dlg"><div id="dlgBody"></div></dialog>
+
+  <!-- HÀNG ĐỢI -->
+  <section id="queue">
+    <div class="card">
+      <h2>Đang chờ / đang chạy</h2>
+      <div class="table-wrap"><table><thead><tr><th>#</th><th>Nền tảng</th><th>Video</th><th>Hẹn lúc</th><th>Trạng thái</th><th></th></tr></thead><tbody id="qbody"></tbody></table></div>
+    </div>
+  </section>
+
+  <!-- LỊCH SỬ -->
+  <section id="history">
+    <div class="card">
+      <div class="row" style="margin-bottom:8px"><h2 style="margin:0">Lịch sử đăng</h2>
+        <div style="flex:0 0 200px"><select id="hfilter" onchange="loadHistory()"><option value="">Tất cả</option><option value="success">Thành công</option><option value="failed">Lỗi</option><option value="cancelled">Đã huỷ</option></select></div></div>
+      <div class="table-wrap"><table><thead><tr><th>#</th><th>Nền tảng</th><th>Video</th><th>Kết thúc</th><th>Kết quả</th><th></th></tr></thead><tbody id="hbody"></tbody></table></div>
+    </div>
+  </section>
+
+  <!-- GẮN BÌNH LUẬN -->
+  <section id="comments">
+    <div class="card">
+      <h2 style="margin-top:0">🧺 Khay link affiliate theo kênh</h2>
+      <p class="muted" style="margin-top:0">Mỗi kênh một nội dung bình luận — sửa trực tiếp ở đây, <b>tự lưu</b>.
+        Gạt công tắc sang <b>Tắt</b> nếu không muốn kênh đó gắn bình luận nữa: tool sẽ <b>bỏ qua mọi bình luận</b> của kênh,
+        kể cả các bài đã xếp chờ gắn. Bật lại là chạy tiếp như cũ.</p>
+      <div class="tray" id="tray"></div>
+    </div>
+    <div class="card">
+      <div class="row" style="margin-bottom:8px;align-items:center"><h2 style="margin:0">💬 Chỉ gắn bình luận affiliate</h2>
+        <div style="flex:0 0 190px"><select id="cchan" onchange="renderComments()"><option value="">Tất cả kênh</option></select></div>
+        <div style="flex:0 0 190px"><select id="cfilter" onchange="renderComments()"><option value="todo">Chưa có bình luận</option><option value="all">Tất cả bài</option></select></div></div>
+      <p class="muted" style="margin-top:0">Gắn link affiliate vào bài <b>đã đăng hoặc đã hẹn giờ</b> trên Facebook/Threads mà <b>không đăng lại video</b>.
+        Ô bình luận tự điền <b>link riêng của kênh</b> (đặt ở tab Đăng video → mục 3) — sửa được từng bài.
+        Bài chưa tới giờ lên sóng: tool chờ tới giờ lên sóng + 3 phút rồi mới bình luận (máy cần bật, tool cần mở).</p>
+      <div class="quick">
+        <button class="btn sm" onclick="ccSelAll(true)">Chọn tất cả</button>
+        <button class="btn sm" onclick="ccSelAll(false)">Bỏ chọn</button>
+        <button class="btn sm primary" onclick="ccRunSelected()">💬 Gắn bình luận cho bài đã chọn</button>
+        <span class="muted" id="ccCount"></span>
+      </div>
+      <div class="table-wrap"><table><thead><tr><th></th><th>#</th><th>Kênh</th><th>Video</th><th>Lên sóng</th><th style="min-width:260px">Bình luận</th><th>Trạng thái</th><th></th></tr></thead><tbody id="cbody"></tbody></table></div>
+    </div>
+  </section>
+
+  <!-- GEMINI -->
+  <section id="gemini">
+    <div class="card">
+      <div class="row" style="align-items:center;margin-bottom:6px"><h2 style="margin:0">🤖 Tài khoản Gemini</h2>
+        <div style="flex:0 0 auto"><button class="btn" id="gemPauseBtn" onclick="gemTogglePause()">⏸ Tạm dừng nạp</button></div></div>
+      <p class="muted" style="margin-top:0">Mỗi tài khoản Gmail có sẵn <b>3 tab Gemini</b> (cuộc trò chuyện đã cài quy trình).
+        Mỗi lần bấm <b>Nạp video</b>: <b>mỗi tab nhận 1 video</b> (3 tài khoản × 3 tab = 9 video/lượt). Tool <b>không tải video về</b> —
+        bạn tự vào từng tab kiểm tra rồi tải.</p>
+      <div class="table-wrap"><table><thead><tr><th>Tài khoản</th><th>Tab (cuộc trò chuyện)</th><th>Tiến độ</th><th>Trạng thái</th><th></th></tr></thead>
+        <tbody id="gaccBody"></tbody></table></div>
+      <div class="row" style="margin-top:14px">
+        <div style="flex:0 0 200px"><label>Thêm tài khoản — tên gợi nhớ</label><input type="text" id="gNewName" placeholder="VD: Gemini 1"></div>
+        <div><label>Link các cuộc trò chuyện (mỗi dòng 1 link, có thể để trống)</label>
+          <textarea id="gNewTabs" rows="2" style="min-height:54px" placeholder="https://gemini.google.com/app/0e597f91987a00e2&#10;https://gemini.google.com/app/..."></textarea></div>
+        <div style="flex:0 0 auto"><button class="btn primary" onclick="gemAddAcc()">Thêm</button></div>
+      </div>
+      <ul class="help muted">
+        <li>Bấm <b>Mở Chrome</b> → đăng nhập Google → mở <b>3 cuộc trò chuyện</b> của tài khoản đó thành 3 tab → <b>đóng cửa sổ</b>.
+          Tool tự ghi lại link của các tab đang mở. Hoặc dán link vào ô bằng nút <b>✎</b>.</li>
+        <li>Tài khoản <b>hết lượt</b> sẽ tạm nghỉ và tự chạy lại sau số giờ đặt ở dưới. Bấm <b>Tiếp tục</b> để chạy ngay,
+          hoặc <b>Chia lại</b> để chuyển video còn chờ sang tài khoản khác.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>🆕 Phiên mới (làm mới tab)</h2>
+      <p class="muted" style="margin-top:0">Bấm <b>Làm mới tab</b>: tool mở <b>cuộc trò chuyện Gemini mới</b> cho từng tab, dán câu lệnh dưới đây, gửi đi,
+        rồi dùng các tab mới này để nạp video (tab cũ vẫn còn trong lịch sử Gemini). Video đang xếp hàng sẽ chờ Gemini trả lời xong câu lệnh rồi mới nạp.</p>
+      <label>Câu lệnh thiết lập phiên mới</label>
+      <textarea id="gSetup" rows="6" placeholder="VD: Hãy đóng vai trò là chuyên gia biên tập và Việt hóa video meme mèo Trung Quốc..."></textarea>
+      <div class="row" style="align-items:flex-end">
+        <div style="flex:0 0 200px"><label>Số tab mỗi tài khoản</label><input type="number" id="gTabCount" min="1" max="10"></div>
+        <div style="flex:1 1 auto" class="quick">
+          <button class="btn" onclick="gemSaveSetup()">💾 Lưu câu lệnh</button>
+          <button class="btn primary" onclick="gemRefreshAll()">🆕 Làm mới tab tất cả tài khoản</button>
+          <span class="muted" id="gSetupNote"></span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>📂 Chia video cho các tài khoản</h2>
+      <div class="row">
+        <div><label>Thư mục video raw</label><input type="text" id="gFolder" placeholder="VD: D:\Videos\raw"></div>
+        <div style="flex:0 0 auto"><button class="btn" onclick="gemScan()">Quét thư mục</button></div>
+      </div>
+      <div id="gProg" hidden style="margin-top:10px">
+        <div style="font-weight:600" id="gProgTxt"></div>
+        <div class="gem-bar" style="height:8px"><i id="gProgBar"></i></div>
+        <details style="margin-top:6px"><summary class="muted" style="cursor:pointer">Xem từng video trong thư mục</summary>
+          <div class="table-wrap" style="max-height:340px;overflow:auto"><table><thead><tr><th>#</th><th>Video</th><th>Đã gửi?</th></tr></thead>
+            <tbody id="gScanBody"></tbody></table></div></details>
+      </div>
+      <label>Chia cho tài khoản</label>
+      <div class="gem-pick" id="gPick"></div>
+      <p class="muted" id="gPlan"></p>
+      <label class="acc-pick" style="max-width:640px;margin-bottom:10px"><input type="checkbox" id="gAuto" onchange="gemSetAuto()">
+        <span><b>🔁 Tự nạp tiếp</b> — tab nào Gemini làm xong (đã ra video) thì tự nạp video tiếp theo trong thư mục, tới khi hết.
+        Tắt = mỗi lần bấm chỉ nạp 1 video/tab.</span></label>
+      <div class="quick"><button class="btn primary" onclick="gemStart()">🚀 Nạp thêm (mỗi tab +1 video)</button>
+        <span class="muted">Tool nhớ video nào đã nạp và <b>nhận ra video trùng</b> theo nội dung file (kể cả đổi tên) → không nạp 1 video vào 2 tab.</span></div>
+      <details style="margin-top:14px"><summary class="muted" style="cursor:pointer">⚙ Tuỳ chọn</summary>
+        <label class="acc-pick" style="max-width:560px;margin-top:10px"><input type="checkbox" id="gKeep">
+          Giữ Chrome mở sau khi nạp để xem kết quả (đóng cửa sổ khi xem xong — máy ít RAM thì nên tắt)</label>
+        <div class="row" style="max-width:640px"><div><label>Thư mục lưu video tải từ Gemini <span class="muted" style="font-weight:400">(trống = mặc định)</span></label>
+          <input type="text" id="gDlDir"><div class="muted" style="font-size:12px" id="gDlEff"></div></div></div>
+        <div class="row" style="max-width:420px"><div><label>Model Gemini luôn dùng <span class="muted" style="font-weight:400">(trống = không đổi)</span></label>
+          <input type="text" id="gModel" placeholder="Neon"></div></div>
+        <label>Câu lệnh gửi kèm mỗi video <span class="muted" style="font-weight:400">(để trống = chỉ gửi video, vì cuộc trò chuyện đã có sẵn quy trình)</span></label>
+        <textarea id="gPrompt" rows="2" style="min-height:54px"></textarea>
+        <div class="row">
+          <div><label>Số tài khoản chạy cùng lúc</label><input type="number" id="gParallel" min="1" max="10"></div>
+          <div><label>Giãn cách giữa 2 tab (giây)</label><input type="number" id="gGap" min="0"></div>
+          <div><label>Hết lượt → nghỉ (giờ)</label><input type="number" id="gCooldown" min="1"></div>
+        </div>
+        <div class="quick" style="margin-top:8px"><button class="btn sm" onclick="gemSaveSettings()">Lưu tuỳ chọn</button>
+          <span class="muted">Mỗi tài khoản = 1 cửa sổ Chrome. Máy ít RAM thì để 1.</span></div>
+      </details>
+    </div>
+
+    <div class="card">
+      <div class="row" style="align-items:center;margin-bottom:8px"><h2 style="margin:0">📋 Danh sách video</h2>
+        <div style="flex:0 0 170px"><select id="gFilter" onchange="renderGem()"><option value="">Tất cả</option><option value="pending">Chờ nạp</option><option value="running">Đang nạp</option><option value="done">Đã nạp</option><option value="failed">Lỗi</option></select></div>
+        <div style="flex:0 0 190px"><select id="gAccFilter" onchange="renderGem()"><option value="">Mọi tài khoản</option></select></div></div>
+      <div class="quick">
+        <button class="btn sm" onclick="gemPost('/api/gem/rebalance', r => `Đã chia lại ${r.moved} video`)">🔀 Chia lại video đang chờ</button>
+        <button class="btn sm" onclick="gemPost('/api/gem/retry_failed', r => `Đã đưa ${r.retried} video lỗi vào chờ nạp lại`)">↻ Nạp lại video lỗi</button>
+        <button class="btn sm" onclick="gemPost('/api/gem/clear_done', r => `Đã ẩn ${r.deleted} dòng đã xong (tool vẫn nhớ là đã gửi)`)">🧹 Ẩn dòng đã xong</button>
+        <button class="btn sm" onclick="gemPost('/api/gem/open_downloads', () => 'Đã mở thư mục video tải về')">📥 Mở thư mục video đã tải</button>
+        <span class="muted" id="gSummary"></span>
+      </div>
+      <div class="table-wrap"><table><thead><tr><th>#</th><th>Video</th><th>Tài khoản</th><th>Trạng thái</th><th>Cuộc trò chuyện</th><th></th></tr></thead>
+        <tbody id="gBody"></tbody></table></div>
+    </div>
+  </section>
+
+  <!-- TẢI DOUYIN -->
+  <section id="douyin">
+    <div class="card">
+      <h2>⬇️ Tải hàng loạt video từ kênh Douyin</h2>
+      <p class="muted" style="margin-top:0">Dán link kênh → <b>Lấy danh sách</b>: tool mở Chrome vào trang kênh và cuộn tới hết để lấy danh sách video.
+        Chọn video rồi bấm <b>Tải</b> — video tải về <b>không logo</b>, chất lượng cao nhất, tên file bắt đầu bằng ngày đăng (sắp đúng thứ tự).</p>
+      <div class="row" style="align-items:flex-end">
+        <div><label>Link kênh Douyin</label><input type="text" id="dyUrl" placeholder="https://www.douyin.com/user/MS4wLjABAAAA...  hoặc  https://v.douyin.com/xxxx/"></div>
+        <div style="flex:0 0 150px"><label>Tối đa (0 = tất cả)</label><input type="number" id="dyLimit" min="0" value="0"></div>
+        <div style="flex:0 0 auto"><button class="btn primary" id="dyScanBtn" onclick="dyScan()">🔎 Lấy danh sách</button>
+          <button class="btn" id="dyLoginBtn" onclick="dyLogin()" title="Mở Chrome để đăng nhập Douyin (quét mã QR bằng app Douyin), xong thì đóng cửa sổ">🔑 Đăng nhập Douyin</button></div>
+      </div>
+      <div id="dyLoginSt" style="margin-top:6px;font-size:13px"></div>
+      <div class="muted" id="dyScanMsg" style="margin-top:6px"></div>
+      <ul class="help muted">
+        <li><b>Phải đăng nhập Douyin</b> mới lấy được hết video của kênh (chưa đăng nhập Douyin chỉ cho xem khoảng 20 video đầu).
+          Bấm <b>🔑 Đăng nhập Douyin</b> → quét mã QR bằng app Douyin → <b>đóng cửa sổ</b>. Chỉ cần làm 1 lần.</li>
+        <li>Nếu Douyin hiện <b>ô xác minh (kéo mảnh ghép)</b> — làm trong cửa sổ Chrome vừa mở, tool sẽ tự chạy tiếp.</li>
+        <li>Không bấm/cuộn trong cửa sổ Chrome khi tool đang cuộn. Lấy xong cửa sổ tự đóng.</li>
+        <li>Link tải chỉ dùng được vài giờ — để lâu mới tải thì bấm <b>Lấy danh sách</b> lại.</li>
+      </ul>
+    </div>
+
+    <div class="card" id="dyChCard" hidden>
+      <h2>📚 Kênh đã lấy</h2>
+      <p class="muted" style="margin-top:0">Ghi nhớ từng kênh: đã tải bao nhiêu video, tải tới đâu (theo <b>ngày đăng</b> của video), còn bao nhiêu chưa tải.
+        Tag <span class="tag-new">MỚI</span> = video kênh mới đăng (chưa có ở lần lấy trước) và bạn chưa tải — tải xong tag tự mất.
+        Bấm <b>✎</b> để đặt <b>tên gợi nhớ tiếng Việt</b> cho kênh. <b>🔄 Lấy lại</b> = lấy danh sách mới nhất của kênh để tải tiếp video mới.</p>
+      <div class="table-wrap"><table><thead><tr><th>Kênh</th><th>Đã tải</th><th>Đã tải tới (ngày đăng)</th><th>Chưa tải</th><th>Lấy lần cuối</th><th></th></tr></thead>
+        <tbody id="dyChBody"></tbody></table></div>
+    </div>
+
+    <div class="card" id="dyListCard" hidden>
+      <h2 id="dyTitle">Danh sách video</h2>
+      <div class="quick">
+        <button class="btn sm" onclick="dyPick('all')">Chọn tất cả</button>
+        <button class="btn sm" onclick="dyPick('fresh')"><span class="tag-new">MỚI</span>Chọn video mới</button>
+        <button class="btn sm" onclick="dyPick('new')">Chọn video chưa tải</button>
+        <button class="btn sm" onclick="dyPick('none')">Bỏ chọn</button>
+        <label style="display:inline-flex;gap:4px;align-items:center;margin:0 0 0 8px;font-weight:400"><input type="checkbox" id="dyHideDone" onchange="dyRender()"> Ẩn video đã tải</label>
+        <span class="muted" id="dyPickInfo"></span>
+      </div>
+      <div class="quick" id="dyGroups"></div>
+      <div class="table-wrap" style="max-height:520px;overflow:auto"><table><thead><tr><th><input type="checkbox" id="dyAll" onchange="dyPick(this.checked ? 'all' : 'none')"></th>
+        <th>#</th><th></th><th>Mô tả</th><th>Ngày đăng</th><th>Thời lượng</th><th>Trạng thái</th></tr></thead>
+        <tbody id="dyBody"></tbody></table></div>
+      <div class="row" style="align-items:flex-end;margin-top:12px">
+        <div><label>Lưu vào thư mục</label><input type="text" id="dyFolder" placeholder="C:\Users\admin\Videos\douyin\TenKenh">
+          <label style="display:flex;gap:6px;align-items:center;margin:6px 0 0;font-weight:400"><input type="checkbox" id="dySplit" checked>
+            <span>Tự chia thư mục: mỗi <b>phim bộ</b> một thư mục <code>Phim bộ - &lt;tên&gt;</code> (file <code>Tap001_…</code> xếp đúng thứ tự tập), video lẻ vào thư mục <code>Video lẻ</code></span></label></div>
+        <div style="flex:0 0 auto">
+          <button class="btn primary" id="dyDlBtn" onclick="dyDownload()">⬇️ Tải video đã chọn</button>
+          <button class="btn danger" id="dyStopBtn" onclick="dyStop()" hidden>⏹ Dừng</button></div>
+      </div>
+      <div id="dyProg" hidden style="margin-top:6px">
+        <div style="font-weight:600" id="dyProgTxt"></div>
+        <div class="gem-bar" style="height:8px"><i id="dyProgBar"></i></div>
+        <div class="quick" style="margin-top:8px" id="dyAfter" hidden></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TÀI KHOẢN -->
+  <section id="accounts">
+    <div class="card">
+      <h2>Thêm tài khoản</h2>
+      <div class="row">
+        <div><label>Nền tảng</label><select id="newPf"></select></div>
+        <div><label>Tên gợi nhớ</label><input type="text" id="newName" placeholder="VD: Kênh chính, Shop A…"></div>
+        <div id="newTargetWrap" hidden><label>Tên Trang Facebook</label><input type="text" id="newTarget" placeholder="Để trống = đăng lên trang cá nhân"></div>
+        <div><label>Nhóm Chrome</label><input type="text" id="newGroup" list="groupList" placeholder="Để trống = Chrome riêng"></div>
+        <div style="flex:0 0 auto"><button class="btn primary" onclick="addAccount()">Thêm</button></div>
+      </div>
+      <datalist id="groupList"></datalist>
+      <p class="muted">Các tài khoản <b>cùng nhóm Chrome</b> dùng chung một cửa sổ Chrome, mỗi nền tảng một tab (VD: YouTube + TikTok + Facebook của cùng một kênh). Mỗi nhóm chỉ có tối đa 1 tài khoản cho mỗi nền tảng.</p>
+    </div>
+    <div class="card">
+      <h2>Danh sách tài khoản</h2>
+      <div class="table-wrap"><table><thead><tr><th>Nền tảng</th><th>Tên</th><th>Đã đăng</th><th>Lần cuối</th><th></th></tr></thead><tbody id="abody"></tbody></table></div>
+      <ul class="help muted">
+        <li>Bấm <b>Mở Chrome</b> (hoặc <b>Đăng nhập</b>): một cửa sổ Chrome mở ra với tab đăng nhập của từng nền tảng trong nhóm. Đăng nhập lần lượt từng tab, sau đó <b>đóng cửa sổ</b>. Phiên đăng nhập được lưu lại cho các lần đăng sau.</li>
+        <li>Chuyển tài khoản sang nhóm khác thì phải đăng nhập lại tài khoản đó một lần.</li>
+        <li>Facebook: muốn đăng lên Fanpage, ghi <b>Tên Trang Facebook</b> cho tài khoản — tool sẽ tự chuyển sang Trang đó trước khi đăng.</li>
+        <li>Threads đăng nhập bằng tài khoản Instagram; bài Threads tối đa 500 ký tự (dài hơn sẽ bị cắt).</li>
+        <li>Instagram cần đăng nhập trên web; YouTube cần tài khoản Google đã có kênh.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- CÀI ĐẶT -->
+  <section id="settings">
+    <div class="card">
+      <h2>Cài đặt</h2>
+      <label class="acc-pick" style="max-width:520px"><input type="checkbox" id="headless" onchange="saveSettings()">
+        Chạy ẩn trình duyệt khi đăng (headless) — không khuyến nghị, các nền tảng dễ phát hiện bot hơn</label>
+      <ul class="help muted">
+        <li>Đừng thao tác vào cửa sổ Chrome đang tự động đăng video.</li>
+        <li>Các video được đăng lần lượt, mỗi lần một video.</li>
+        <li>Nếu đăng lỗi, xem ảnh chụp màn hình lỗi trong tab Lịch sử rồi bấm <b>Thử lại</b>.</li>
+        <li>Phải để chương trình chạy (không tắt cửa sổ dòng lệnh) thì video hẹn giờ mới được đăng.</li>
+      </ul>
+    </div>
+  </section>
+</main>
+<div id="toast"></div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+let PLATFORMS = {}, videos = [];
+
+async function api(url, opts = {}) {
+  const r = await fetch(url, opts);
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.detail || ("Lỗi " + r.status));
+  return data;
+}
+const json = (method, body) => ({ method, headers: {"Content-Type": "application/json"}, body: JSON.stringify(body) });
+function toast(msg) { const t = $("#toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("show"), 3500); }
+const pf = (p) => `<span class="pf ${p}">${esc(PLATFORMS[p] || p)}</span>`;
+const fname = (p) => p.split(/[\\/]/).pop().replace(/^[0-9a-f]{8}_/, "");
+const fmt = (s) => s ? s.replace("T", " ").slice(0, 16) : "";
+const ST = {pending: "Chờ đăng", running: "Đang đăng…", success: "Thành công", failed: "Lỗi", cancelled: "Đã huỷ"};
+const size = (b) => b > 1e9 ? (b/1e9).toFixed(1)+" GB" : (b/1e6).toFixed(1)+" MB";
+
+// Tabs
+document.querySelectorAll("nav button[data-tab]").forEach(b => b.onclick = () => {
+  document.querySelectorAll("nav button[data-tab], section").forEach(x => x.classList.remove("active"));
+  b.classList.add("active"); $("#" + b.dataset.tab).classList.add("active");
+  refresh();
+});
+
+// ---------- Video ----------
+function renderVideos() {
+  const tb = $("#vtable tbody");
+  // giữ con trỏ khi bảng vẽ lại (vd: đang gõ tiêu đề thì video khác đọc xong)
+  const fa = document.activeElement, fk = fa && fa.dataset ? (fa.dataset.vi !== undefined ? "vi" : fa.dataset.vc !== undefined ? "vc" : null) : null;
+  const fi = fk ? fa.dataset[fk] : undefined;
+  const sel = fi !== undefined ? [fa.selectionStart, fa.selectionEnd] : null;
+  tb.innerHTML = videos.map((v, i) => `<tr>
+    <td>${i+1}</td>
+    <td class="vthumb">${v.thumb ? `<img src="/api/thumbs/${encodeURIComponent(v.thumb)}" alt="">` : `<div class="noimg">🎬</div>`}</td>
+    <td>${esc(v.name)}<div class="muted">${size(v.size)}</div></td>
+    <td><input type="text" value="${esc(v.title)}" data-vi="${i}" placeholder="Tiêu đề video">
+      <div class="ocr-st ${v.ocr || ""}">${OCR_TXT[v.ocr] ? OCR_TXT[v.ocr](v) : ""}</div>
+      ${v.cmtOpen || v.cmt ? `<input type="text" class="vcmt" value="${esc(v.cmt || "")}" data-vc="${i}" placeholder="💬 Bình luận riêng cho video này (trống = dùng link của kênh)">` : ""}</td>
+    <td style="white-space:nowrap"><button class="btn sm ${v.cmt ? "primary" : ""}" data-cmt="${i}" title="Bình luận đầu tiên riêng cho video này">💬</button>
+      <button class="btn sm" data-ocr="${i}" title="Đọc lại chữ trên video" ${v.ocr === "busy" || v.ocr === "wait" ? "disabled" : ""}>🔍</button>
+      <button class="btn sm danger" data-rm="${i}">Bỏ</button></td></tr>`).join("");
+  tb.querySelectorAll("input[data-vi]").forEach(el => el.oninput = () => { const v = videos[+el.dataset.vi]; v.title = el.value; v.edited = true; });
+  tb.querySelectorAll("[data-ocr]").forEach(b => b.onclick = () => { const v = videos[+b.dataset.ocr]; v.edited = false; queueOcr(v, true); });
+  tb.querySelectorAll("input[data-vc]").forEach(el => el.oninput = () => { videos[+el.dataset.vc].cmt = el.value; });
+  tb.querySelectorAll("[data-cmt]").forEach(b => b.onclick = () => {
+    const i = +b.dataset.cmt; videos[i].cmtOpen = true; renderVideos();
+    const el = tb.querySelector(`input[data-vc="${i}"]`); if (el) el.focus();
+  });
+  tb.querySelectorAll("[data-rm]").forEach(b => b.onclick = () => { videos.splice(+b.dataset.rm, 1); renderVideos(); });
+  $("#vtable").hidden = !videos.length; $("#vempty").hidden = !!videos.length;
+  $("#ocrAll").hidden = !videos.length;
+  if (sel) { const el = tb.querySelector(`input[data-${fk}="${fi}"]`); if (el) { el.focus(); el.setSelectionRange(...sel); } }
+  updatePlan();
+}
+const OCR_TXT = {
+  wait: () => "⏳ chờ đọc chữ…",
+  busy: () => "🔍 đang đọc chữ trên video…",
+  ok: (v) => `✓ lấy từ chữ trên video${v.conf < 0.6 ? " — <b>nên kiểm tra lại</b>" : ""}`,
+  none: () => "Không thấy chữ trên video — đang dùng tên file",
+  err: (v) => "Lỗi đọc chữ: " + esc(v.err || ""),
+};
+// Hàng đợi đọc chữ: đọc lần lượt từng video
+const ocrQueue = [];
+let ocrRunning = false;
+function queueOcr(v, force = false) {
+  if (!force && v.ocr) return;
+  v.ocr = "wait"; ocrQueue.push(v); renderVideos(); runOcr();
+}
+async function runOcr() {
+  if (ocrRunning) return;
+  ocrRunning = true;
+  while (ocrQueue.length) {
+    const v = ocrQueue.shift();
+    if (!videos.includes(v)) continue;
+    v.ocr = "busy"; renderVideos();
+    try {
+      const r = await api("/api/videos/ocr", json("POST", {path: v.path}));
+      v.thumb = r.thumb; v.conf = r.conf;
+      if (r.title) { if (!v.edited) v.title = r.title; v.ocr = "ok"; } else v.ocr = "none";
+    } catch (e) {
+      v.ocr = "err";
+      v.err = e.message === "Not Found" ? "hãy tắt và mở lại run.bat để cập nhật tool" : e.message;
+    }
+    renderVideos();
+  }
+  ocrRunning = false;
+}
+function addVideos(list) {
+  for (const v of list) {
+    if (videos.some(x => x.path === v.path)) continue;
+    const item = {...v, title: v.name.replace(/\.[^.]+$/, "").replace(/^[0-9a-f]{8}_/, "")};
+    videos.push(item);
+    if ($("#autoOcr").checked) queueOcr(item);
+  }
+  renderVideos();
+}
+async function uploadFiles(files) {
+  if (!files.length) return;
+  const fd = new FormData(); [...files].forEach(f => fd.append("files", f));
+  toast(`Đang chép ${files.length} video…`);
+  try { addVideos(await api("/api/videos/upload", {method: "POST", body: fd})); toast("Đã thêm video"); }
+  catch (e) { toast(e.message); }
+}
+$("#filepick").onchange = (e) => { uploadFiles(e.target.files); e.target.value = ""; };
+const drop = $("#drop");
+drop.ondragover = (e) => { e.preventDefault(); drop.classList.add("over"); };
+drop.ondragleave = () => drop.classList.remove("over");
+drop.ondrop = (e) => { e.preventDefault(); drop.classList.remove("over"); uploadFiles(e.dataTransfer.files); };
+async function scanFolder() {
+  try { const list = await api("/api/videos/scan?folder=" + encodeURIComponent($("#folder").value));
+        addVideos(list); toast(`Tìm thấy ${list.length} video`); }
+  catch (e) { toast(e.message); }
+}
+
+// ---------- Hẹn giờ ----------
+// ---------- Rải nhiều ngày theo khung giờ ----------
+let dailyOn = null;          // Set các giờ đang bật; null = chưa khởi tạo (mặc định bật tất cả nút giờ)
+let dailyExtra = [];
+const dailyKnown = new Set();  // giờ đã từng thấy (để giờ mới thêm vào nút nhanh tự bật)         // giờ tự thêm (không nằm trong nút giờ nhanh)
+let busySlots = new Set();   // "YYYY-MM-DDTHH:MM" đã có bài hẹn của tài khoản đang chọn
+const WD = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
+function dailyTimes() {
+  const all = [...new Set([...PRESETS.map(p => p.time), ...dailyExtra])].sort();
+  if (dailyOn === null) { dailyOn = new Set(all); all.forEach(t => dailyKnown.add(t)); }
+  return all;
+}
+function renderDailySlots() {
+  $("#dailySlots").innerHTML = dailyTimes().map(t =>
+    `<button type="button" class="slotpill ${dailyOn.has(t) ? "on" : ""}" data-slot="${t}">${dailyOn.has(t) ? "✓ " : ""}${t}</button>`).join("")
+    || `<span class="muted" style="font-size:12px">Chưa có giờ nào — thêm giờ ở bên cạnh</span>`;
+  $("#dailySlots").querySelectorAll("[data-slot]").forEach(b => b.onclick = () => {
+    const t = b.dataset.slot; dailyOn.has(t) ? dailyOn.delete(t) : dailyOn.add(t); renderDailySlots(); updatePlan();
+  });
+}
+$("#dailyAddBtn").onclick = () => {
+  const t = $("#dailyNew").value; if (!t) return toast("Chọn giờ trước");
+  dailyTimes(); if (!dailyExtra.includes(t)) dailyExtra.push(t); dailyOn.add(t);
+  $("#dailyNew").value = ""; renderDailySlots(); updatePlan();
+};
+$("#dailyStart").onchange = () => updatePlan();
+$("#dailyAfter").onchange = () => loadBusySlots().catch(() => {});
+async function loadBusySlots() {   // khung giờ đã có bài hẹn (chờ đăng) của các tài khoản đang chọn
+  const busy = new Set();          // dựng xong mới gán -> không có lúc nào bị trống giữa chừng
+  const ids = new Set([...document.querySelectorAll("#accpick input.acc:checked")].map(x => +x.value));
+  if ($("#dailyAfter").checked && ids.size) {
+    const q = await api("/api/jobs?status=upcoming&limit=5000");   // lỗi -> để nơi gọi biết
+    for (const j of q) if (ids.has(j.account_id)) busy.add(j.scheduled_at.slice(0, 16));
+  }
+  busySlots = busy;
+  updatePlan();
+}
+function computeDaily(n) {   // trả về danh sách giờ đăng cho n video
+  const times = dailyTimes().filter(t => dailyOn.has(t));
+  const out = [];
+  if (!times.length || !$("#dailyStart").value) return out;
+  const soon = new Date(Date.now() + 2 * 60e3);
+  const d = new Date($("#dailyStart").value + "T00:00");
+  for (let guard = 0; out.length < n && guard < 3660; guard++) {
+    const key = `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
+    for (const t of times) {
+      const when = `${key}T${t}`;
+      if (out.length < n && new Date(when) > soon && !busySlots.has(when)) out.push(when);
+    }
+    d.setDate(d.getDate() + 1);
+  }
+  return out;
+}
+function renderDailyPreview(slots) {
+  if (!videos.length) return $("#dailyPreview").innerHTML = `<p class="muted">Chọn video ở bước 1 để xem lịch đăng.</p>`;
+  if (!slots.length) return $("#dailyPreview").innerHTML = `<p class="muted">Bật ít nhất một khung giờ và chọn ngày bắt đầu.</p>`;
+  let html = "<table>", lastDay = "";
+  slots.forEach((w, i) => {
+    const day = w.slice(0, 10);
+    if (day !== lastDay) {
+      const dd = new Date(day + "T00:00");
+      html += `<tr class="dayhead"><td colspan="3">${WD[dd.getDay()]}, ${day.split("-").reverse().join("/")}</td></tr>`;
+      lastDay = day;
+    }
+    html += `<tr><td style="width:60px"><b>${w.slice(11, 16)}</b></td><td style="width:30px" class="muted">#${i+1}</td><td>${esc(videos[i].title || videos[i].name)}</td></tr>`;
+  });
+  $("#dailyPreview").innerHTML = html + "</table>";
+}
+function defaultDailyStart() {
+  const now = new Date();
+  $("#dailyStart").value = `${now.getFullYear()}-${pad2(now.getMonth()+1)}-${pad2(now.getDate())}`;
+  $("#dailyStart").min = $("#dailyStart").value;
+}
+
+let lastLater = "";   // giờ hẹn gần nhất, để khôi phục khi bấm lại "Hẹn giờ"
+document.querySelectorAll('input[name=when]').forEach(r => r.onchange = () => {
+  const mode = $('input[name=when]:checked').value, later = mode === "later";
+  $("#dailyBox").hidden = mode !== "daily";
+  $("#platBox").hidden = mode === "now";
+  document.querySelectorAll(".tm-single").forEach(el => el.hidden = mode === "daily");
+  if (mode === "daily") { if (!$("#dailyStart").value) defaultDailyStart(); renderDailySlots(); loadBusySlots().catch(() => {}); }
+  $("#startAt").disabled = !later;
+  if (!later) {                         // Đăng ngay -> xoá giờ hẹn khỏi ô để không gây nhầm
+    if ($("#startAt").value) lastLater = $("#startAt").value;
+    $("#startAt").value = "";
+  } else if (!$("#startAt").value) {
+    if (lastLater && new Date(lastLater) > new Date()) $("#startAt").value = lastLater;
+    else {
+      const d = new Date(Date.now() + 3600e3); d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+      $("#startAt").value = d.toISOString().slice(0, 16);
+    }
+  }
+  updatePlan();
+});
+["#startAt", "#interval"].forEach(s => $(s).oninput = updatePlan);
+function updatePlan() {
+  const n = videos.length, accs = document.querySelectorAll("#accpick input.acc:checked").length;
+  const iv = +$("#interval").value || 0;
+  const mode = $('input[name=when]:checked').value, later = mode === "later";
+  let t = `${n} video × ${accs} tài khoản = ${n*accs} lượt đăng.`;
+  if (mode === "daily") {
+    const slots = computeDaily(n);
+    renderDailyPreview(slots);
+    if (n && slots.length === n) {
+      const days = new Set(slots.map(w => w.slice(0, 10))).size;
+      t += ` Rải trong ${days} ngày: từ ${fmt(slots[0])} đến ${fmt(slots[n-1])}.`;
+    }
+    if ($("#platSched").checked) t += " ☁ Tải lên ngay, nền tảng tự đăng đúng giờ.";
+  } else {
+    t += later && $("#startAt").value ? ` Hẹn đăng lúc ${fmt($("#startAt").value)}.` : " Đăng ngay khi bấm nút.";
+    if (n > 1 && iv) t += ` Mỗi video cách nhau ${iv} phút.`;
+    if (later && $("#platSched").checked) t += " ☁ Tải lên ngay, nền tảng tự đăng đúng giờ.";
+  }
+  $("#plan").textContent = t;
+  markActivePreset();
+}
+function markActivePreset() {   // chỉ sáng nút giờ đang được dùng
+  const later = $('input[name=when]:checked').value === "later";
+  const time = $("#startAt").value.slice(11, 16), iv = +$("#interval").value || 0;
+  document.querySelectorAll("#presetBtns .preset").forEach((el, i) => {
+    const p = PRESETS[i];
+    el.classList.toggle("active", !!(later && p && p.time === time && (p.interval || 0) === iv));
+  });
+}
+async function submitJobs() {
+  const account_ids = [...document.querySelectorAll("#accpick input.acc:checked")].map(x => +x.value);
+  const mode = $('input[name=when]:checked').value, later = mode === "later";
+  let slots = [];
+  if (!videos.length) return toast("Chưa chọn video");
+  let queue = [];
+  try { queue = await api("/api/jobs?status=upcoming&limit=5000"); } catch {}
+  const accSet = new Set(account_ids);
+  const dup = videos.filter(v => queue.some(j => j.video_path === v.path && accSet.has(j.account_id)));
+  const NL = String.fromCharCode(10);
+  if (dup.length && !confirm(`${dup.length} video đã có sẵn trong hàng đợi (sẽ bị đăng 2 lần):` + NL + NL
+      + dup.map(v => "• " + (v.title || v.name)).join(NL) + NL + NL + "Vẫn thêm tiếp?")) return;
+  if (mode === "daily") {
+    try { await loadBusySlots(); } catch { return toast("Không tải được hàng đợi để tránh trùng giờ — thử lại"); }
+    slots = computeDaily(videos.length);
+    if (slots.length < videos.length) return toast("Chưa đủ khung giờ — bật ít nhất một giờ và chọn ngày bắt đầu");
+    // Máy chủ cũ không hiểu giờ riêng từng video -> sẽ đăng dồn một lúc. Chặn lại.
+    let ok = false;
+    try { ok = (await api("/api/version")).features.includes("per_video_time"); } catch {}
+    if (!ok) return toast("Hãy tắt cửa sổ run.bat rồi mở lại để cập nhật tool trước khi dùng “Rải nhiều ngày”");
+  }
+  if (videos.some(v => (v.cmt || "").trim()) || (mode !== "now" && $("#platSched").checked)) {
+    let ok = false;
+    try { ok = (await api("/api/version")).features.includes("platform_schedule"); } catch {}
+    if (!ok) return toast("Hãy tắt cửa sổ run.bat rồi mở lại để cập nhật tool trước khi dùng tính năng mới");
+  }
+  const body = {
+    videos: videos.map((v, i) => ({path: v.path, title: v.title, scheduled_at: slots[i] || null, first_comment: (v.cmt || "").trim() || null})), account_ids,
+    first_comment: "",
+    platform_schedule: mode !== "now" && $("#platSched").checked,
+    description: $("#desc").value, hashtags: $("#tags").value, yt_visibility: $("#ytvis").value,
+    start_at: later ? $("#startAt").value : null, interval_minutes: +$("#interval").value || 0,
+  };
+  $("#submit").disabled = true;
+  try {
+    const r = await api("/api/jobs", json("POST", body));
+    toast(`Đã thêm ${r.created} lượt đăng vào hàng đợi`);
+    videos = []; renderVideos(); refresh();
+    if (mode === "daily") loadBusySlots().catch(() => {});
+  } catch (e) { toast(e.message); }
+  $("#submit").disabled = false;
+}
+
+// ---------- Nút giờ đăng cố định ----------
+let PRESETS = [];
+const pad2 = (n) => String(n).padStart(2, "0");
+function nextAt(time) {   // lần gần nhất tới của giờ HH:MM (hôm nay nếu chưa qua, không thì ngày mai)
+  const [h, m] = time.split(":").map(Number), d = new Date();
+  d.setHours(h, m, 0, 0);
+  if (d <= new Date()) d.setDate(d.getDate() + 1);
+  return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}T${time}`;
+}
+function renderPresets() {
+  $("#presetBtns").innerHTML = PRESETS.map((p, i) => `<span class="preset">
+      <button data-use="${i}" title="Hẹn đăng lúc ${p.time}${p.interval ? `, mỗi video cách nhau ${p.interval} phút` : ""}">⏰ ${p.time}${p.interval ? ` · cách ${p.interval}p` : ""}</button>
+      <button class="x" data-edit="${i}" title="Sửa giờ của nút này">✎</button>
+      <button class="x" data-del="${i}" title="Xoá nút này">×</button></span>`).join("")
+    || `<span class="muted" style="font-size:12px">(chưa có nút nào)</span>`;
+  $("#presetBtns").querySelectorAll("[data-use]").forEach(b => b.onclick = () => usePreset(PRESETS[+b.dataset.use]));
+  $("#presetBtns").querySelectorAll("[data-edit]").forEach(b => b.onclick = () => editPreset(+b.dataset.edit));
+  if (dailyOn) { PRESETS.forEach(p => { if (!dailyKnown.has(p.time)) { dailyKnown.add(p.time); dailyOn.add(p.time); } }); renderDailySlots(); }
+  markActivePreset();
+  $("#presetBtns").querySelectorAll("[data-del]").forEach(b => b.onclick = () => {
+    const p = PRESETS[+b.dataset.del];
+    if (confirm(`Xoá nút ${p.time}?`)) storePresets(PRESETS.filter((_, i) => i !== +b.dataset.del));
+  });
+}
+function usePreset(p) {
+  document.querySelector('input[name=when][value=later]').checked = true;
+  $("#startAt").disabled = false;
+  $("#startAt").value = nextAt(p.time);
+  $("#interval").value = p.interval || 0;
+  updatePlan();
+  toast(`Hẹn đăng lúc ${fmt($("#startAt").value)}${p.interval ? `, mỗi video cách ${p.interval} phút` : ""}`);
+}
+async function storePresets(list) {
+  try { PRESETS = await api("/api/presets", json("PUT", list)); renderPresets(); return true; }
+  catch (e) {
+    toast(e.message === "Not Found" ? "Chưa lưu được: hãy tắt cửa sổ run.bat rồi mở lại để cập nhật tool" : "Chưa lưu được: " + e.message);
+    return false;
+  }
+}
+// Thêm nút mới (idx = null) hoặc sửa nút có sẵn
+function editPreset(idx = null) {
+  const cur = idx === null ? {time: "19:00", interval: 0} : PRESETS[idx];
+  openDlg(`<h3>${idx === null ? "Thêm nút giờ đăng" : "Sửa nút giờ đăng"}</h3>
+    <label>Giờ đăng</label>
+    <input type="time" id="pTime" value="${cur.time}" style="font-size:20px;max-width:180px">
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">${QUICK_TIMES.map(t => `<button class="btn sm" data-t="${t}">${t}</button>`).join("")}</div>
+    <label>Cách nhau (phút) giữa các video <span class="muted">— khi đăng nhiều video một lúc</span></label>
+    <input type="number" id="pInt" min="0" value="${cur.interval || 0}" style="max-width:180px">
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">${[0, 30, 60, 120, 180].map(m => `<button class="btn sm" data-m="${m}">${m ? m + " phút" : "Không cách"}</button>`).join("")}</div>
+    <div class="dlg-actions"><button class="btn" id="pCancel">Huỷ</button><button class="btn primary" id="pSave">Lưu nút</button></div>`);
+  $("#dlgBody").querySelectorAll("[data-t]").forEach(b => b.onclick = () => { $("#pTime").value = b.dataset.t; });
+  $("#dlgBody").querySelectorAll("[data-m]").forEach(b => b.onclick = () => { $("#pInt").value = b.dataset.m; });
+  $("#pCancel").onclick = () => dlg.close();
+  $("#pSave").onclick = async () => {
+    const p = {time: $("#pTime").value, interval: Math.max(0, +$("#pInt").value || 0)};
+    if (!p.time) return toast("Hãy chọn giờ");
+    const list = idx === null ? [...PRESETS, p] : PRESETS.map((x, i) => i === idx ? p : x);
+    if (await storePresets(list)) { dlg.close(); toast(`Đã lưu nút ⏰ ${p.time}`); }
+  };
+}
+async function savePreset() {   // lưu giờ đang đặt ở ô "Bắt đầu lúc"
+  const v = $("#startAt").value;
+  if ($('input[name=when]:checked').value !== "later" || !v) return editPreset();
+  const p = {time: v.slice(11, 16), interval: +$("#interval").value || 0};
+  if (await storePresets([...PRESETS, p])) toast(`Đã lưu nút ⏰ ${p.time}`);
+}
+async function loadPresets() { try { PRESETS = await api("/api/presets"); } catch {} renderPresets(); }
+
+// ---------- Tài khoản ----------
+function syncPicker() {
+  if ($('input[name=when]:checked') && $('input[name=when]:checked').value === "daily") { clearTimeout(syncPicker.t); syncPicker.t = setTimeout(() => loadBusySlots().catch(() => {}), 300); }   // cập nhật ô "chọn cả nhóm" + số đã chọn
+  document.querySelectorAll("#accpick .pick-grp").forEach(g => {
+    const boxes = [...g.querySelectorAll("input.acc")], n = boxes.filter(x => x.checked).length;
+    const all = g.querySelector(".grp-all");
+    all.checked = n === boxes.length; all.indeterminate = n > 0 && n < boxes.length;
+    g.querySelector(".pick-count").textContent = `${n}/${boxes.length} đã chọn`;
+    g.classList.toggle("on", n > 0);
+  });
+  updatePlan();
+}
+document.addEventListener("change", (e) => {
+  if (!e.target.closest("#accpick")) return;
+  if (e.target.classList.contains("grp-all"))
+    e.target.closest(".pick-grp").querySelectorAll("input.acc").forEach(x => { x.checked = e.target.checked; });
+  syncPicker();
+});
+let ACCS = [];
+// ---- Link affiliate riêng cho từng kênh (nhóm Chrome; tài khoản không có nhóm thì theo từng tài khoản) ----
+const CMT_PF = new Set(["facebook", "threads"]);
+let CHCMT = null, CHOFF = new Set();
+const chanKey = (a) => (a.browser_group || "").trim() || "acc:" + (a.account_id ?? a.id);
+async function ensureChanCmt(force = false) {
+  if (CHCMT !== null && !force) return;
+  try { const r = await api("/api/channel_tray"); CHCMT = r.texts; CHOFF = new Set(r.off); } catch { if (CHCMT === null) CHCMT = {}; }
+}
+function chanCmtInputs(g) {   // mục 3: chỉ hiện tóm tắt, sửa ở khay trong tab Gắn bình luận
+  const accs = g.list.filter(a => CMT_PF.has(a.platform));
+  if (!accs.length) return "";
+  const row = (key) => {
+    const on = !CHOFF.has(key), txt = CHCMT[key] || "";
+    const st = on ? `<span class="st success">Bật</span>` : `<span class="st cancelled">Tắt</span>`;
+    return `<div class="ch-sum" onclick="openTray()" title="Bấm để sửa trong khay link (tab Gắn bình luận)">💬 ${st}
+      <span class="txt muted">${on ? (txt ? esc(txt) : "Chưa có link — không bình luận") : "Không gắn bình luận cho kênh này"}</span>
+      <span class="muted">✎ sửa</span></div>`;
+  };
+  return g.name ? row(g.name) : accs.map(a => row("acc:" + a.id)).join("");
+}
+function openTray() { document.querySelector('nav button[data-tab="comments"]').click(); loadComments(); }
+
+// ---- Khay link affiliate ----
+function trayChannels() {
+  const out = [];
+  for (const a of ACCS.filter(a => CMT_PF.has(a.platform))) {
+    const key = chanKey(a);
+    let c = out.find(x => x.key === key);
+    if (!c) out.push(c = {key, name: (a.browser_group || "").trim() || a.name, accs: []});
+    c.accs.push(a);
+  }
+  return out.sort((x, y) => x.name.localeCompare(y.name, "vi"));
+}
+function renderTray() {
+  const tray = $("#tray");
+  if (tray.contains(document.activeElement)) return;   // đang gõ -> không vẽ lại
+  const chans = trayChannels();
+  tray.innerHTML = chans.map(c => {
+    const on = !CHOFF.has(c.key);
+    return `<div class="tray-item ${on ? "" : "off"}" data-key="${esc(c.key)}">
+      <div class="tray-name">${esc(c.name)}
+        <span class="muted">${c.accs.map(a => esc(PLATFORMS[a.platform]) + " · " + esc(a.name)).join("<br>")}</span>
+        <label class="switch"><input type="checkbox" class="tray-on" ${on ? "checked" : ""}><span class="sw"></span><span>${on ? "Đang bật" : "Đã tắt"}</span></label></div>
+      <div><textarea class="tray-txt" placeholder="vd: Ốp điện thoại siêu cấp vô địch vũ trụ: https://s.shopee.vn/...&#10;Trống = kênh này không bình luận">${esc(CHCMT[c.key] || "")}</textarea>
+        <div class="muted" style="font-size:12px"><span class="tray-st"></span></div></div></div>`;
+  }).join("") || `<p class="muted">Chưa có tài khoản Facebook/Threads nào.</p>`;
+  tray.querySelectorAll(".tray-item").forEach(el => {
+    const key = el.dataset.key, ta = el.querySelector(".tray-txt"), st = el.querySelector(".tray-st");
+    ta.oninput = () => {
+      st.textContent = "Đang lưu…";
+      clearTimeout(ta._t);
+      ta._t = setTimeout(() => saveTray(key, {text: ta.value}, st), 700);
+    };
+    el.querySelector(".tray-on").onchange = (e) => saveTray(key, {enabled: e.target.checked}, st, true);
+  });
+}
+async function saveTray(key, body, st, redraw = false) {
+  try {
+    const r = await api("/api/channel_tray", json("PUT", {key, ...body}));
+    CHCMT = r.texts; CHOFF = new Set(r.off);
+    if (st) st.textContent = "✓ Đã lưu";
+    if (redraw) { if (document.activeElement) document.activeElement.blur(); renderTray(); renderComments(); loadAccounts(); toast(body.enabled ? "Đã BẬT gắn bình luận cho kênh" : "Đã TẮT gắn bình luận cho kênh"); }
+  } catch (e) { if (st) st.textContent = "⚠ " + e.message; toast(e.message); }
+}
+
+// ---- Tab Gắn bình luận ----
+let CJOBS = [], CCDRAFT = {}, CCSEL = new Set();
+const chanName = (j) => (j.browser_group || "").trim() || j.account_name;
+function ccDefault(j) { return CCDRAFT[j.id] ?? (j.first_comment || (CHCMT && CHCMT[chanKey(j)]) || ""); }
+function ccState(j) {
+  if (CHOFF.has(chanKey(j))) return ["off", `<span class="st cancelled">Kênh đang tắt</span>`];
+  const n = j.note || "";
+  if (n.startsWith("💬")) return ["done", `<span class="st success">Đã gắn</span>`];
+  if (n.startsWith("⏳")) return ["wait", `<span class="muted">${esc(n)}</span>`];
+  if (n.startsWith("⚠")) return ["err", `<div class="err-text">${esc(n)}</div>` + (j.screenshot ? `<a href="/api/screenshots/${encodeURIComponent(j.screenshot)}" target="_blank">Ảnh lỗi</a>` : "")];
+  return ["none", `<span class="muted">Chưa có</span>`];
+}
+async function loadComments() {
+  if (!$("#tray").contains(document.activeElement)) await ensureChanCmt(true);
+  if (!ACCS.length) ACCS = await api("/api/accounts");
+  renderTray();
+  CJOBS = await api("/api/comment_jobs");
+  const chans = [...new Set(CJOBS.map(chanName))];
+  const cur = $("#cchan").value;
+  $("#cchan").innerHTML = `<option value="">Tất cả kênh</option>` + chans.map(c => `<option ${c === cur ? "selected" : ""}>${esc(c)}</option>`).join("");
+  renderComments();
+}
+function renderComments() {
+  if ($("#cbody").contains(document.activeElement)) return;   // đang gõ -> không vẽ lại
+  const ch = $("#cchan").value, todo = $("#cfilter").value === "todo";
+  const list = CJOBS.filter(j => (!ch || chanName(j) === ch) && (!todo || ["none", "err", "off"].includes(ccState(j)[0])));
+  $("#cbody").innerHTML = list.map(j => {
+    const [st, html] = ccState(j);
+    return `<tr><td><input type="checkbox" class="ccsel" data-id="${j.id}" ${CCSEL.has(j.id) ? "checked" : ""}></td><td>${j.id}</td>
+      <td>${pf(j.platform)}<div class="muted">${esc(chanName(j))}</div></td>
+      <td>${videoCell(j)}</td><td>${fmt(j.scheduled_at)}</td>
+      <td><input type="text" class="cc-in" data-id="${j.id}" value="${esc(ccDefault(j))}" placeholder="Nhập link affiliate…"></td>
+      <td>${html}</td>
+      <td style="white-space:nowrap">${st === "off" ? "" : `<button class="btn sm ${st === "done" ? "" : "primary"}" onclick="ccRun([${j.id}])">${st === "done" ? "Gắn lại" : "💬 Gắn"}</button>`}</td></tr>`;
+  }).join("") || `<tr><td colspan="8" class="empty">${todo ? "Không còn bài nào chưa có bình luận 🎉" : "Chưa có bài Facebook/Threads nào đã đăng"}</td></tr>`;
+  $("#cbody").querySelectorAll(".cc-in").forEach(i => i.oninput = () => { CCDRAFT[i.dataset.id] = i.value; });
+  $("#cbody").querySelectorAll(".ccsel").forEach(c => c.onchange = () => { c.checked ? CCSEL.add(+c.dataset.id) : CCSEL.delete(+c.dataset.id); ccCount(); });
+  ccCount();
+}
+function ccCount() { $("#ccCount").textContent = CCSEL.size ? `Đã chọn ${CCSEL.size} bài` : ""; }
+function ccSelAll(on) {
+  document.querySelectorAll("#cbody .ccsel").forEach(c => { c.checked = on; on ? CCSEL.add(+c.dataset.id) : CCSEL.delete(+c.dataset.id); });
+  ccCount();
+}
+async function ccRun(ids) {
+  const done = CJOBS.filter(j => ids.includes(j.id) && ccState(j)[0] === "done");
+  if (done.length && !confirm(`${done.length} bài đã có bình luận rồi — gắn thêm sẽ thành 2 bình luận. Vẫn gắn?`)) return;
+  let ok = 0, miss = 0;
+  for (const id of ids) {
+    const j = CJOBS.find(x => x.id === id); if (!j || CHOFF.has(chanKey(j))) continue;
+    const inp = document.querySelector(`#cbody .cc-in[data-id="${id}"]`);
+    const text = (inp ? inp.value : ccDefault(j)).trim();
+    if (!text) { miss++; continue; }
+    try { await api(`/api/jobs/${id}/comment`, json("POST", {text})); ok++; delete CCDRAFT[id]; CCSEL.delete(id); } catch (e) { toast(e.message); }
+  }
+  toast(`Đã xếp ${ok} bài chờ gắn bình luận` + (miss ? ` · ${miss} bài bỏ qua vì ô bình luận trống` : ""));
+  if (document.activeElement) document.activeElement.blur();
+  loadComments();
+}
+function ccRunSelected() { if (!CCSEL.size) return toast("Chưa chọn bài nào"); ccRun([...CCSEL]); }
+
+async function loadAccounts() {
+  await ensureChanCmt();
+  const accs = ACCS = await api("/api/accounts");
+  const checked = new Set([...document.querySelectorAll("#accpick input.acc:checked")].map(x => +x.value));
+  // Gom tài khoản theo nhóm Chrome; trong nhóm sắp theo thứ tự nền tảng cố định
+  const order = Object.keys(PLATFORMS);
+  const blocks = [];
+  for (const a of accs) {
+    const name = a.browser_group || "";
+    let g = blocks.find(x => x.name === name);
+    if (!g) blocks.push(g = {name, list: []});
+    g.list.push(a);
+  }
+  blocks.sort((x, y) => (x.name === "") - (y.name === "") || x.name.localeCompare(y.name, "vi"));
+  blocks.forEach(g => g.list.sort((x, y) => order.indexOf(x.platform) - order.indexOf(y.platform)));
+  const stkMap = new Map(STOCK.map(s => [s.key, s]));
+  const grpStockHtml = (g) => {
+    if (!g.name) return "";
+    const s = stkMap.get(g.name);
+    if (!s) return "";
+    const txt = s.videos_left === 0 ? "🔴 Hết video"
+      : `${s.level === "low" ? "🟠" : "🟢"} Còn ${s.videos_left} video · đến ${fmtShort(s.last_at)}`;
+    return `<span class="pick-stk ${s.level}">${txt}</span>`;
+  };
+  $("#accpick").innerHTML = blocks.map((g, gi) => `<div class="pick-grp" data-g="${gi}">
+      <label class="pick-head"><input type="checkbox" class="grp-all" data-g="${gi}">
+        <b>${g.name ? esc(g.name) : "Tài khoản riêng"}</b>${grpStockHtml(g)}<span class="muted pick-count"></span></label>
+      <div class="pick-list">${g.list.map(a => `<label class="pill" style="--c:${PF_COLORS[a.platform] || "#888"}" title="${esc(PLATFORMS[a.platform])} · ${esc(a.name)}">
+        <input type="checkbox" class="acc" value="${a.id}" ${checked.has(a.id) ? "checked" : ""}>
+        <span class="pill-pf">${esc(PLATFORMS[a.platform])}</span><span class="pill-name">${esc(a.name)}</span></label>`).join("")}</div>
+      ${chanCmtInputs(g)}
+    </div>`).join("");
+  $("#accQuick").innerHTML = accs.length ? `<button class="btn sm" data-sel="all">Chọn tất cả</button><button class="btn sm" data-sel="none">Bỏ chọn tất cả</button><button class="btn sm" id="selLowBtn">⚡ Chọn kênh hết / sắp hết</button>` : "";
+  $("#accQuick").querySelectorAll("[data-sel]").forEach(b => b.onclick = () => {
+    document.querySelectorAll("#accpick input.acc").forEach(x => { x.checked = b.dataset.sel === "all"; });
+    syncPicker();
+  });
+  if ($("#selLowBtn")) $("#selLowBtn").onclick = () => {
+    const need = new Set(STOCK.filter(s => s.level !== "ok").flatMap(s => s.account_ids));
+    if (!need.size) return toast("Tất cả các kênh đều đang đủ video 🎉");
+    document.querySelectorAll("#accpick input.acc").forEach(x => { x.checked = need.has(+x.value); });
+    syncPicker();
+    toast(`Đã chọn các kênh đang hết / sắp hết video`);
+  };
+  syncPicker();
+  $("#accempty").hidden = !!accs.length;
+  // Gom theo nhóm Chrome
+  const groups = [], solo = [];
+  for (const a of accs) {
+    if (!a.browser_group) { solo.push(a); continue; }
+    let g = groups.find(g => g.key === a.profile_key);
+    if (!g) groups.push(g = {key: a.profile_key, name: a.browser_group, list: []});
+    g.list.push(a);
+  }
+  $("#groupList").innerHTML = groups.map(g => `<option value="${esc(g.name)}">`).join("");
+  const accRow = (a) => `<tr><td>${pf(a.platform)}</td><td>${esc(a.name)}${a.platform === "facebook"
+      ? `<div class="muted">${a.target_name ? `Đăng lên Trang: <b>${esc(a.target_name)}</b>` : "Đăng lên trang cá nhân"}
+         · <a href="#" onclick="changeTarget(${a.id});return false">sửa</a></div>` : ""}</td><td>${a.success_count}</td><td>${fmt(a.last_success)}</td>
+    <td style="text-align:right;white-space:nowrap">${a.browser_group ? "" : `<button class="btn sm" onclick="login(${a.id})">Đăng nhập</button> `}
+    <button class="btn sm" onclick="changeGroup(${a.id})">Đổi nhóm</button>
+    <button class="btn sm danger" onclick="delAccount(${a.id})">Xoá</button></td></tr>`;
+  let html = groups.map(g => `<tr class="grp"><td colspan="5"><div class="grp-head">
+      <span>🌐 Nhóm Chrome: <b>${esc(g.name)}</b> <span class="muted">· ${g.list.length} tab</span></span>
+      <button class="btn sm primary" onclick="login(${g.list[0].id})">Mở Chrome (${g.list.length} tab)</button></div></td></tr>`
+    + g.list.map(accRow).join("")).join("");
+  if (solo.length) html += (groups.length ? `<tr class="grp"><td colspan="5"><div class="grp-head"><span>Chrome riêng từng tài khoản</span></div></td></tr>` : "") + solo.map(accRow).join("");
+  $("#abody").innerHTML = html || `<tr><td colspan="5" class="empty">Chưa có tài khoản</td></tr>`;
+  updatePlan();
+}
+async function addAccount() {
+  try { await api("/api/accounts", json("POST", {platform: $("#newPf").value, name: $("#newName").value, browser_group: $("#newGroup").value,
+          target_name: $("#newPf").value === "facebook" ? $("#newTarget").value : ""}));
+        $("#newName").value = ""; loadAccounts(); toast("Đã thêm. Bấm 'Đăng nhập' / 'Mở Chrome' để đăng nhập."); }
+  catch (e) { toast(e.message); }
+}
+async function changeTarget(id) {
+  const current = (ACCS.find(a => a.id === id) || {}).target_name || "";
+  const t = prompt("Tên Trang Facebook (ghi đúng như trên Facebook).\nĐể trống = đăng lên trang cá nhân.", current);
+  if (t === null) return;
+  try { await api(`/api/accounts/${id}/target`, json("PUT", {target_name: t})); loadAccounts(); toast("Đã lưu"); }
+  catch (e) { toast(e.message); }
+}
+async function changeGroup(id) {
+  const current = (ACCS.find(a => a.id === id) || {}).browser_group || "";
+  const g = prompt("Tên nhóm Chrome mới (để trống = Chrome riêng).\nSau khi đổi nhóm cần đăng nhập lại tài khoản này.", current);
+  if (g === null || g.trim() === current) return;
+  try { await api(`/api/accounts/${id}/group`, json("PUT", {browser_group: g})); loadAccounts(); toast("Đã đổi nhóm — hãy mở Chrome để đăng nhập lại"); }
+  catch (e) { toast(e.message); }
+}
+async function login(id) {
+  try { const r = await api(`/api/accounts/${id}/login`, {method: "POST"});
+        toast(r.status === "already_open" ? "Cửa sổ Chrome của nhóm này đang mở"
+              : `Đã mở Chrome với ${r.tabs} tab — đăng nhập xong thì đóng cửa sổ`); }
+  catch (e) { toast(e.message); }
+}
+async function delAccount(id) {
+  if (!confirm("Xoá tài khoản này cùng toàn bộ lịch sử đăng của nó?")) return;
+  try { await api(`/api/accounts/${id}`, {method: "DELETE"}); loadAccounts(); } catch (e) { toast(e.message); }
+}
+
+// ---------- Job ----------
+const videoCell = (j) => `<b>${esc(j.title)}</b><div class="muted">${esc(fname(j.video_path))}</div>`;
+async function loadQueue() {
+  const jobs = await api("/api/jobs?status=queue");
+  $("#qcount").textContent = jobs.length;
+  $("#qbody").innerHTML = jobs.map(j => `<tr><td>${j.id}</td><td>${pf(j.platform)}<div class="muted">${esc(j.account_name)}</div></td>
+    <td>${videoCell(j)}</td><td>${fmt(j.scheduled_at)}${j.publish_mode === "platform" ? `<div class="up-at">☁ tải lên ${j.upload_at && new Date(j.upload_at) > new Date() ? "lúc " + fmt(j.upload_at) : "ngay"}</div>` : ""}${j.note ? `<div class="up-at">${esc(j.note)}</div>` : ""}</td><td><span class="st ${j.status}">${ST[j.status]}</span></td>
+    <td style="text-align:right;white-space:nowrap">${j.status === "pending" ? `${j.run_now ? `<span class="muted" style="font-size:12px">⟳ sắp chạy</span>`
+      : `<button class="btn sm primary" onclick="act(${j.id},'run')" title="Tải bài này lên ngay (kể cả khi đang Tạm dừng). Bài hẹn trên nền tảng vẫn lên sóng đúng giờ đã đặt.">▶ Chạy</button>`}
+      <button class="btn sm danger" onclick="act(${j.id},'cancel')">Huỷ</button>` : ""}</td></tr>`).join("")
+    || `<tr><td colspan="6" class="empty">Hàng đợi trống</td></tr>`;
+}
+async function loadHistory() {
+  const f = $("#hfilter").value;
+  const jobs = (await api("/api/jobs?status=history")).filter(j => !f || j.status === f);
+  $("#hbody").innerHTML = jobs.map(j => {
+    let res = `<span class="st ${j.status}">${ST[j.status]}</span>`;
+    if (j.result_url) res += `<div><a href="${esc(j.result_url)}" target="_blank" rel="noopener">Mở link</a></div>`;
+    if (j.error) res += `<div class="err-text">${esc(j.error)}</div>`;
+    if (j.note) res += `<div class="note-text ${j.note.startsWith("⚠") ? "err-text" : "muted"}">${esc(j.note)}</div>`;
+    if (j.screenshot) res += `<div><a href="/api/screenshots/${encodeURIComponent(j.screenshot)}" target="_blank">Ảnh lỗi</a></div>`;
+    const btns = (j.status !== "success" ? `<button class="btn sm" onclick="act(${j.id},'retry')">Thử lại</button> ` : "")
+      + `<button class="btn sm danger" onclick="delJob(${j.id})">Xoá</button>`;
+    return `<tr><td>${j.id}</td><td>${pf(j.platform)}<div class="muted">${esc(j.account_name)}</div></td><td>${videoCell(j)}</td>
+      <td>${fmt(j.finished_at)}</td><td>${res}</td><td style="text-align:right;white-space:nowrap">${btns}</td></tr>`;
+  }).join("") || `<tr><td colspan="6" class="empty">Chưa có lịch sử</td></tr>`;
+}
+async function act(id, a) { try { await api(`/api/jobs/${id}/${a}`, {method: "POST"}); refresh(); toast({retry: "Đã đưa lại vào hàng đợi", run: "Đang chạy bài này…", cancel: "Đã huỷ"}[a] || "Xong"); } catch (e) { toast(e.message); } }
+async function delJob(id) { await api(`/api/jobs/${id}`, {method: "DELETE"}); refresh(); }
+
+// ---------- Cài đặt ----------
+// ---------- Nội dung cố định: hashtag + chế độ YouTube tự lưu ----------
+const PREF_FIELDS = {   // ô trên trang -> tên mục lưu
+  hashtags: () => $("#tags").value, yt_visibility: () => $("#ytvis").value,
+  auto_ocr: () => $("#autoOcr").checked ? "1" : "0",
+  platform_schedule: () => $("#platSched").checked ? "1" : "0",
+};
+let prefsLoaded = false;
+function localPrefs() { try { return JSON.parse(localStorage.getItem("prefs") || "{}"); } catch { return {}; } }
+async function loadPrefs() {
+  const local = localPrefs();
+  let p = null;
+  try { p = await api("/api/prefs"); } catch {}
+  if (!p) p = local;   // tool chưa cập nhật -> dùng bộ nhớ trình duyệt
+  const fix = {};      // máy chủ bị trống mà trình duyệt còn giữ -> lấy lại
+  for (const k of ["hashtags"])
+    if (!(p[k] || "").trim() && (local[k] || "").trim()) { p[k] = local[k]; fix[k] = local[k]; }
+  if (Object.keys(fix).length) { try { await api("/api/prefs", json("PUT", fix)); } catch {} }
+  if (p.hashtags != null) $("#tags").value = p.hashtags;
+  if (p.yt_visibility) $("#ytvis").value = p.yt_visibility;
+  if (p.auto_ocr != null) $("#autoOcr").checked = p.auto_ocr !== "0";
+  if (p.platform_schedule != null) $("#platSched").checked = p.platform_schedule === "1";
+  prefsLoaded = true;
+}
+// Chỉ lưu đúng ô vừa sửa -> sửa bình luận không bao giờ đè mất hashtag (và ngược lại)
+let prefTimer, prefPending = {};
+function savePref(key, noteId = "tagsNote") {
+  if (!prefsLoaded) return;   // chưa tải xong dữ liệu đã lưu -> không ghi đè
+  const note = $("#" + noteId);
+  prefPending[key] = PREF_FIELDS[key]();
+  clearTimeout(prefTimer);
+  note.textContent = "đang lưu…";
+  prefTimer = setTimeout(async () => {
+    const p = prefPending; prefPending = {};
+    try { localStorage.setItem("prefs", JSON.stringify({...localPrefs(), ...p})); } catch {}
+    try { await api("/api/prefs", json("PUT", p)); } catch {}
+    note.textContent = "✓ đã lưu";
+    setTimeout(() => { note.textContent = ""; }, 2000);
+  }, 600);
+}
+$("#tags").addEventListener("input", () => savePref("hashtags"));
+$("#ytvis").addEventListener("change", () => savePref("yt_visibility"));
+$("#platSched").addEventListener("change", () => { savePref("platform_schedule", "platNote"); updatePlan(); });
+$("#autoOcr").addEventListener("change", () => {
+  savePref("auto_ocr");
+  if ($("#autoOcr").checked) videos.forEach(v => queueOcr(v));
+});
+$("#ocrAll").onclick = () => videos.forEach(v => { v.edited = false; queueOcr(v, true); });
+
+async function loadSettings() { $("#headless").checked = (await api("/api/settings")).headless; }
+async function saveSettings() { await api("/api/settings", json("PUT", {headless: $("#headless").checked})); toast("Đã lưu"); }
+
+// ---------- Lịch ----------
+const PF_COLORS = {youtube: "#e62117", tiktok: "#25c2c9", facebook: "#1877f2", instagram: "#c13584", threads: "#7a7f8c"};
+const ST_ICON = {pending: "⏳", running: "⟳", success: "✓", failed: "✗", cancelled: "⊘"};
+const DOW = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
+const pad = (n) => String(n).padStart(2, "0");
+const ymd = (d) => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const dmy = (key) => key.split("-").reverse().join("/");
+const startOfWeek = (d) => { const x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x; };
+let calView = "week";
+try { calView = localStorage.getItem("calView") || "week"; } catch {}
+let calAnchor = new Date();       // ngày đang xem
+let calJobs = {};
+let wkScrolled = false;
+const MAX_CHIPS = 4;
+
+function setCalView(v) {
+  calView = v; wkScrolled = false;
+  try { localStorage.setItem("calView", v); } catch {}
+  loadCalendar();
+}
+function calMove(step) {
+  if (step === 0) calAnchor = new Date();
+  else if (calView === "week") calAnchor = new Date(calAnchor.getFullYear(), calAnchor.getMonth(), calAnchor.getDate() + 7 * step);
+  else calAnchor = new Date(calAnchor.getFullYear(), calAnchor.getMonth() + step, 1);
+  wkScrolled = false;
+  loadCalendar();
+}
+// Mỗi video (cùng kênh, cùng giờ) gộp thành 1 dòng; mỗi nền tảng là 1 chấm màu
+let calGroups = {}, calAcc = "";
+try { calAcc = localStorage.getItem("calAcc") || ""; } catch {}
+const chanOf = (j) => (j.browser_group || "").trim() || j.account_name;
+const movableJob = (j) => j.status !== "running" && j.status !== "success";
+function groupStatus(g) {
+  const s = g.jobs.map(j => j.status);
+  return s.includes("failed") ? "failed" : s.includes("running") ? "running" : s.every(x => x === "success") ? "success" : "pending";
+}
+function chipHtml(g) {
+  const st = groupStatus(g), movable = g.jobs.some(movableJob);
+  const tip = g.jobs.map(j => `${PLATFORMS[j.platform]}: ${ST[j.status]}`).join("\n");
+  return `<div class="chip ${st}" style="--c:var(--primary)" ${movable ? `draggable="true"` : ""} data-g="${esc(g.id)}"
+    title="${esc(g.chan)} · ${esc(g.title)}\n${esc(tip)}">
+    <span class="s">${ST_ICON[st]}</span><span class="t">${g.time}</span>${calAcc ? "" : `<span class="acc">${esc(g.chan)}</span>`}<span class="n">${esc(g.title)}</span>
+    <span class="dots">${g.jobs.map(j => `<i class="${j.status}" style="--c:${PF_COLORS[j.platform] || "#888"}"></i>`).join("")}</span></div>`;
+}
+let STOCK = [];
+const fmtShort = (s) => s ? `${s.slice(11, 16)} ${s.slice(8, 10)}/${s.slice(5, 7)}` : "";
+function stkBadgeText(c) {
+  if (c.level === "empty") return "🔴 Hết video";
+  if (c.level === "low") return c.hours_left < 24 ? "🟠 Sắp hết · hết hôm nay" : `🟠 Sắp hết · còn ${Math.max(1, c.days_left)} ngày`;
+  return `🟢 Còn ${c.days_left} ngày`;
+}
+async function computeStockFallback() {
+  const accs = ACCS.length ? ACCS : await api("/api/accounts");
+  const jobs = await api("/api/jobs?limit=5000");
+  const now = new Date(), padN = (n) => String(n).padStart(2, "0");
+  const nowS = `${now.getFullYear()}-${padN(now.getMonth()+1)}-${padN(now.getDate())}T${padN(now.getHours())}:${padN(now.getMinutes())}:${padN(now.getSeconds())}`;
+  const todayS = nowS.slice(0, 10) + "T00:00:00";
+  const order = Object.keys(PLATFORMS), chans = new Map(), byAcc = new Map();
+  for (const j of jobs) if (j.status !== "cancelled") {
+    if (!byAcc.has(j.account_id)) byAcc.set(j.account_id, []);
+    byAcc.get(j.account_id).push(j);
+  }
+  for (const a of accs) {
+    const key = chanKey(a), name = (a.browser_group || "").trim() || a.name;
+    if (!chans.has(key)) chans.set(key, {key, name, accounts: []});
+    chans.get(key).accounts.push(a);
+  }
+  const out = [];
+  for (const ch of chans.values()) {
+    ch.accounts.sort((x, y) => order.indexOf(x.platform) - order.indexOf(y.platform));
+    const upSlots = new Set(), postSlots = new Set(), platforms = [];
+    let next_at = null, last_at = null, last_posted_at = null;
+    for (const a of ch.accounts) {
+      const aj = byAcc.get(a.id) || [];
+      const up = aj.filter(j => j.scheduled_at > nowS && ["pending", "running", "success"].includes(j.status));
+      const past = aj.filter(j => j.scheduled_at <= nowS && j.status === "success");
+      const failed = aj.filter(j => j.status === "failed" && j.scheduled_at >= todayS).length;
+      let pfLast = null;
+      for (const j of up) {
+        upSlots.add(j.scheduled_at.slice(0, 16) + "|" + j.video_path);
+        if (!next_at || j.scheduled_at < next_at) next_at = j.scheduled_at;
+        if (!last_at || j.scheduled_at > last_at) last_at = j.scheduled_at;
+        if (!pfLast || j.scheduled_at > pfLast) pfLast = j.scheduled_at;
+      }
+      for (const j of past) {
+        postSlots.add(j.scheduled_at.slice(0, 16) + "|" + j.video_path);
+        if (!last_posted_at || j.scheduled_at > last_posted_at) last_posted_at = j.scheduled_at;
+      }
+      platforms.push({id: a.id, platform: a.platform, name: a.name, upcoming: up.length, failed, last_at: pfLast});
+    }
+    const videos_left = upSlots.size;
+    const hours_left = last_at ? Math.max(0, (new Date(last_at) - now) / 36e5) : 0;
+    const days_left = last_at ? Math.max(0, Math.round((new Date(last_at.slice(0, 10) + "T00:00") - new Date(nowS.slice(0, 10) + "T00:00")) / 864e5)) : 0;
+    const level = videos_left === 0 ? "empty" : (videos_left <= 3 || hours_left <= 48) ? "low" : "ok";
+    const maxPf = Math.max(0, ...platforms.map(p => p.upcoming)), minPf = Math.min(...platforms.map(p => p.upcoming));
+    out.push({key: ch.key, name: ch.name, account_ids: ch.accounts.map(a => a.id), videos_left, posted_videos: postSlots.size,
+      next_at, last_at, last_posted_at, hours_left, days_left, level, uneven: platforms.length > 1 && maxPf !== minPf,
+      failed_total: platforms.reduce((s, p) => s + p.failed, 0), platforms});
+  }
+  const rk = {empty: 0, low: 1, ok: 2};
+  return out.sort((a, b) => rk[a.level] - rk[b.level] || a.videos_left - b.videos_left || (a.last_at || "").localeCompare(b.last_at || ""));
+}
+async function loadStock() {
+  try { STOCK = await api("/api/channel_stock"); }
+  catch { try { STOCK = await computeStockFallback(); } catch { STOCK = []; } }
+  const lowList = STOCK.filter(c => c.level !== "ok");
+  const badge = $("#calLowCount");
+  badge.style.display = lowList.length ? "" : "none";
+  badge.textContent = lowList.length;
+  badge.title = lowList.length ? "Cần nạp thêm: " + lowList.map(c => `${c.name} (${c.videos_left} video)`).join(", ") : "";
+  renderStock();
+}
+function renderStock() {
+  const grid = $("#stkGrid"), sum = $("#stkSummary");
+  if (!grid) return;
+  if (!STOCK.length) {
+    sum.innerHTML = "";
+    grid.innerHTML = `<div class="muted">Chưa có kênh nào. Vào tab <b>Tài khoản</b> để thêm.</div>`;
+    return;
+  }
+  const nEmpty = STOCK.filter(c => c.level === "empty").length;
+  const nLow = STOCK.filter(c => c.level === "low").length;
+  const nOk = STOCK.filter(c => c.level === "ok").length;
+  sum.innerHTML = [
+    nEmpty ? `<span class="stk-pill empty">🔴 ${nEmpty} kênh hết video</span>` : "",
+    nLow ? `<span class="stk-pill low">🟠 ${nLow} kênh sắp hết</span>` : "",
+    nOk ? `<span class="stk-pill ok">🟢 ${nOk} kênh đủ dùng</span>` : "",
+    calAcc ? `<button class="btn sm" onclick="setCalAcc('')">✕ Đang lọc lịch: <b>${esc(calAcc)}</b> · Xem tất cả</button>` : "",
+  ].filter(Boolean).join("");
+  grid.innerHTML = STOCK.map(c => {
+    const maxPf = Math.max(0, ...c.platforms.map(p => p.upcoming));
+    const pct = c.videos_left ? Math.max(8, Math.min(100, Math.round((c.hours_left / (7 * 24)) * 100))) : 0;
+    const mainTxt = c.videos_left
+      ? `<span>Còn <b>${c.videos_left} video</b> · hẹn tới <b>${fmtShort(c.last_at)}</b></span>`
+      : `<span><b>0 video chờ lên</b>${c.last_posted_at ? ` · hết từ ${fmtShort(c.last_posted_at)}` : " · chưa đăng bài nào"}</span>`;
+    const pfs = c.platforms.map(p => {
+      const short = p.failed > 0 || (c.platforms.length > 1 && p.upcoming < maxPf);
+      return `<span class="stk-pf ${short ? "short" : ""}" title="${esc(PLATFORMS[p.platform])} · ${esc(p.name)}${p.last_at ? " · đến " + fmtShort(p.last_at) : ""}">
+        <i style="--c:${PF_COLORS[p.platform] || "#888"}"></i>${esc(PLATFORMS[p.platform])}: <b>${p.upcoming}</b>${p.failed ? ` · ${p.failed} lỗi` : ""}</span>`;
+    }).join("");
+    const onCal = calAcc === c.name;
+    return `<div class="stk-card ${c.level} ${onCal ? "active" : ""}">
+      <div class="stk-head"><span class="stk-name" title="${esc(c.name)}">${esc(c.name)}</span>
+        <span class="stk-pill ${c.level}">${stkBadgeText(c)}</span></div>
+      <div class="stk-main">${mainTxt}${c.posted_videos ? `<span class="muted" style="font-size:12px">đã lên ${c.posted_videos}</span>` : ""}</div>
+      <div class="stk-bar"><i style="width:${pct}%"></i></div>
+      <div class="stk-pfs">${pfs}</div>
+      <div class="stk-acts">
+        <button class="btn sm" data-cal="${esc(c.name)}">${onCal ? "✓ Đang xem lịch" : "👁 Xem lịch"}</button>
+        <button class="btn sm ${c.level !== "ok" ? "primary" : ""}" data-feed="${esc(c.key)}">＋ Nạp cho kênh này</button>
+      </div>
+    </div>`;
+  }).join("");
+  grid.querySelectorAll("[data-cal]").forEach(b => b.onclick = () => setCalAcc(calAcc === b.dataset.cal ? "" : b.dataset.cal));
+  grid.querySelectorAll("[data-feed]").forEach(b => b.onclick = () => feedChannel(b.dataset.feed));
+}
+async function feedChannel(key) {
+  const c = STOCK.find(x => x.key === key);
+  if (!c) return;
+  document.querySelector('nav button[data-tab="post"]').click();
+  if (!document.querySelectorAll("#accpick input.acc").length) await loadAccounts();
+  const ids = new Set(c.account_ids);
+  document.querySelectorAll("#accpick input.acc").forEach(x => { x.checked = ids.has(+x.value); });
+  syncPicker();
+  const dailyRadio = document.querySelector('input[name=when][value=daily]');
+  if (dailyRadio) {
+    dailyRadio.checked = true;
+    $("#dailyAfter").checked = true;
+    dailyRadio.onchange();
+  }
+  window.scrollTo({top: 0, behavior: "smooth"});
+  toast(`Đã chọn kênh "${c.name}" — chọn video ở mục 1 để xếp lịch nối tiếp!`);
+}
+
+function fillAccSelect(jobs) {
+  const names = new Set([...STOCK.map(s => s.name), ...ACCS.map(a => (a.browser_group || "").trim() || a.name), ...jobs.map(chanOf)]);
+  const chans = [...names].filter(Boolean).sort((a, b) => a.localeCompare(b, "vi"));
+  if (calAcc && !chans.includes(calAcc)) chans.unshift(calAcc);
+  $("#calAcc").innerHTML = `<option value="">Tất cả kênh</option>` + chans.map(c => {
+    const s = STOCK.find(x => x.name === c);
+    const suffix = s ? ` (${s.videos_left} video)` : "";
+    return `<option value="${esc(c)}" ${c === calAcc ? "selected" : ""}>${esc(c)}${suffix}</option>`;
+  }).join("");
+}
+function setCalAcc(v) { calAcc = v; try { localStorage.setItem("calAcc", v); } catch {} renderStock(); loadCalendar(); }
+async function fetchJobs(start, end) {
+  const all = await api(`/api/calendar?start=${ymd(start)}T00:00:00&end=${ymd(end)}T00:00:00`);
+  fillAccSelect(all);
+  const jobs = calAcc ? all.filter(j => chanOf(j) === calAcc) : all;
+  calJobs = {}; calGroups = {};
+  const byId = {};
+  for (const j of jobs) {
+    const hk = j.scheduled_at.slice(0, 13);   // khoá theo "YYYY-MM-DDTHH"
+    (calJobs[hk] ||= []).push(j);
+    const gid = [chanOf(j), j.scheduled_at.slice(0, 16), j.title, j.video_path].join("|");
+    if (!byId[gid]) (calGroups[hk] ||= []).push(byId[gid] = {id: gid, chan: chanOf(j), title: j.title, time: j.scheduled_at.slice(11, 16), jobs: []});
+    byId[gid].jobs.push(j);
+  }
+}
+const jobsOfDay = (key) => Object.keys(calGroups).filter(k => k.startsWith(key)).sort().flatMap(k => calGroups[k]);
+const findGroup = (gid) => Object.values(calGroups).flat().find(g => g.id === gid);
+function showGroup(gid) {
+  const g = findGroup(gid); if (!g) return;
+  if (g.jobs.length === 1) return showJob(g.jobs[0].id);
+  openDlg(`<h3>${esc(g.title)}</h3><p class="muted" style="margin:-6px 0 10px">${esc(g.chan)} · ${g.time} ${dmy(g.jobs[0].scheduled_at.slice(0, 10))}</p>
+    <div style="display:flex;flex-direction:column;gap:6px">${g.jobs.map(j => `<div class="grow" data-id="${j.id}">${pf(j.platform)}
+      <span style="flex:1">${esc(j.account_name)}</span><span class="st ${j.status}">${ST_ICON[j.status]} ${ST[j.status]}</span></div>`).join("")}</div>
+    <div class="dlg-actions"><button class="btn" onclick="dlg.close()">Đóng</button></div>`);
+  $("#dlgBody").querySelectorAll(".grow").forEach(r => r.onclick = () => showJob(+r.dataset.id));
+}
+
+async function loadCalendar() {
+  $("#legend").innerHTML = Object.entries(PLATFORMS).map(([k, v]) => `<span style="--c:${PF_COLORS[k]}">${esc(v)}</span>`).join("");
+  document.querySelectorAll("#calViews button").forEach(b => b.classList.toggle("on", b.dataset.v === calView));
+  $("#calPrev").title = calView === "week" ? "Tuần trước" : "Tháng trước";
+  $("#calNext").title = calView === "week" ? "Tuần sau" : "Tháng sau";
+  loadStock();
+  return calView === "week" ? renderWeek() : renderMonth();
+}
+
+async function renderMonth() {
+  const first = new Date(calAnchor.getFullYear(), calAnchor.getMonth(), 1);
+  $("#calTitle").textContent = `Tháng ${first.getMonth()+1}/${first.getFullYear()}`;
+  const start = startOfWeek(first);
+  const end = new Date(start); end.setDate(start.getDate() + 42);
+  await fetchJobs(start, end);
+  const today = ymd(new Date());
+  let html = DOW.map(d => `<div class="dow">${d}</div>`).join("");
+  for (let i = 0; i < 42; i++) {
+    const d = new Date(start); d.setDate(start.getDate() + i);
+    const key = ymd(d), list = jobsOfDay(key);
+    const cls = ["day", d.getMonth() !== first.getMonth() && "other", key === today && "today", key < today && "past"].filter(Boolean).join(" ");
+    html += `<div class="${cls}" data-date="${key}">
+      <div class="dhead"><span class="dnum">${d.getDate()}</span>${key >= today ? `<button class="dadd" title="Lên lịch đăng ngày này" onclick="pickTime('${key}')">+</button>` : ""}</div>
+      ${list.slice(0, MAX_CHIPS).map(chipHtml).join("")}
+      ${list.length > MAX_CHIPS ? `<button class="more" onclick="showDay('${key}')">+${list.length - MAX_CHIPS} bài nữa</button>` : ""}
+    </div>`;
+  }
+  $("#cal").className = "cal";
+  $("#cal").innerHTML = html;
+}
+
+async function renderWeek() {
+  const start = startOfWeek(calAnchor);
+  const end = new Date(start); end.setDate(start.getDate() + 7);
+  const last = new Date(end); last.setDate(end.getDate() - 1);
+  $("#calTitle").textContent = `${pad(start.getDate())}/${pad(start.getMonth()+1)} – ${pad(last.getDate())}/${pad(last.getMonth()+1)}/${last.getFullYear()}`;
+  await fetchJobs(start, end);
+  const days = [...Array(7)].map((_, i) => { const d = new Date(start); d.setDate(start.getDate() + i); return d; });
+  const now = new Date(), today = ymd(now), nowHour = now.getHours();
+  const prevScroll = $("#wkBody") ? $("#wkBody").scrollTop : null;
+
+  const head = `<div class="wk-row wk-head"><div></div>` + days.map((d, i) => {
+    const key = ymd(d), n = jobsOfDay(key).length;
+    return `<div class="wk-dh ${key === today ? "today" : ""}">${DOW[i]}<b>${d.getDate()}</b>${n ? `<span>${n} bài</span>` : ""}</div>`;
+  }).join("") + `</div>`;
+  let body = "";
+  for (let h = 0; h < 24; h++) {
+    body += `<div class="wk-row"><div class="wk-hour">${pad(h)}:00</div>`;
+    days.forEach((d, i) => {
+      const key = ymd(d), list = calGroups[`${key}T${pad(h)}`] || [];
+      const past = key < today || (key === today && h < nowHour);
+      const cls = ["slot", past && "past", key === today && h === nowHour && "now"].filter(Boolean).join(" ");
+      body += `<div class="${cls}" data-date="${key}" data-hour="${h}" ${past ? "" : `title="Lên lịch đăng ${DOW[i]} ${dmy(key)} lúc ${pad(h)}:00"`}>${list.map(chipHtml).join("")}</div>`;
+    });
+    body += `</div>`;
+  }
+  $("#cal").className = "week";
+  $("#cal").innerHTML = head + `<div class="wk-body" id="wkBody">${body}</div>`;
+  const wb = $("#wkBody");
+  if (!wkScrolled && wb.offsetParent !== null) {   // lần đầu hiển thị: cuộn tới giờ hiện tại (tuần này) hoặc 7h sáng
+    const h = ymd(start) <= today && today < ymd(end) ? Math.max(nowHour - 1, 0) : 7;
+    wb.scrollTop = wb.querySelector(`.slot[data-hour="${h}"]`).offsetTop;
+    wkScrolled = true;
+  } else if (prevScroll != null) wb.scrollTop = prevScroll;
+}
+
+// Bấm / kéo thả trên lịch
+$("#cal").addEventListener("click", (e) => {
+  const chip = e.target.closest(".chip"); if (chip) return showGroup(chip.dataset.g);
+  const slot = e.target.closest(".slot");
+  if (slot && !slot.classList.contains("past")) scheduleOn(slot.dataset.date, `${pad(slot.dataset.hour)}:00`);
+});
+$("#cal").addEventListener("dragstart", (e) => {
+  const chip = e.target.closest(".chip"); if (chip) e.dataTransfer.setData("text/job", chip.dataset.g);
+});
+$("#cal").addEventListener("dragover", (e) => {
+  const cell = e.target.closest(".day, .slot"); if (!cell || !e.dataTransfer.types.includes("text/job")) return;
+  e.preventDefault(); document.querySelectorAll(".drop-over").forEach(x => x.classList.remove("drop-over")); cell.classList.add("drop-over");
+});
+$("#cal").addEventListener("dragleave", (e) => { const c = e.target.closest(".day, .slot"); if (c && !c.contains(e.relatedTarget)) c.classList.remove("drop-over"); });
+$("#cal").addEventListener("drop", async (e) => {
+  const cell = e.target.closest(".day, .slot"); if (!cell) return;
+  e.preventDefault(); cell.classList.remove("drop-over");
+  const g = findGroup(e.dataTransfer.getData("text/job"));
+  const jobs = g ? g.jobs.filter(movableJob) : [];
+  if (!jobs.length) return;
+  const job = jobs[0], mins = job.scheduled_at.slice(14, 16);
+  const time = cell.classList.contains("slot") ? `${pad(cell.dataset.hour)}:${mins}` : job.scheduled_at.slice(11, 16);
+  const when = `${cell.dataset.date}T${time}`;
+  if (when === job.scheduled_at.slice(0, 16)) return;
+  if (new Date(when) < new Date() && !confirm("Thời gian này đã qua — bài sẽ được đăng ngay. Tiếp tục?")) return;
+  try {   // dời cả video (mọi nền tảng chưa đăng) sang giờ mới
+    for (const j of jobs) await api(`/api/jobs/${j.id}/reschedule`, json("POST", {scheduled_at: when}));
+    toast(`Đã đổi lịch ${jobs.length} nền tảng sang ${fmt(when)}`);
+  } catch (err) { toast(err.message); }
+  refresh();
+});
+const findJob = (id) => Object.values(calJobs).flat().find(j => j.id === id);
+async function reschedule(id, when) {
+  try { await api(`/api/jobs/${id}/reschedule`, json("POST", {scheduled_at: when})); toast("Đã đổi lịch sang " + fmt(when)); refresh(); }
+  catch (e) { toast(e.message); }
+}
+// Chọn giờ khi bấm + ở chế độ tháng
+const QUICK_TIMES = ["07:00", "11:30", "12:00", "17:00", "19:00", "20:00", "21:00", "22:00"];
+function pickTime(key) {
+  const now = new Date(), def = key === ymd(now) ? `${pad(Math.min(now.getHours() + 1, 23))}:00` : "19:00";
+  openDlg(`<h3>Đăng ngày ${dmy(key)} lúc mấy giờ?</h3>
+    <input type="time" id="pickT" value="${def}" style="font-size:20px;max-width:180px">
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">${QUICK_TIMES
+      .map(t => `<button class="btn sm" data-t="${t}">${t}</button>`).join("")}</div>
+    <div class="dlg-actions"><button class="btn" id="pickCancel">Huỷ</button>
+      <button class="btn primary" id="pickOk">Tiếp tục</button></div>`);
+  $("#dlgBody").querySelectorAll("[data-t]").forEach(b => b.onclick = () => { $("#pickT").value = b.dataset.t; });
+  $("#pickCancel").onclick = () => dlg.close();
+  $("#pickOk").onclick = () => { const t = $("#pickT").value; if (!t) return; dlg.close(); scheduleOn(key, t); };
+}
+function scheduleOn(dateKey, time) {
+  const when = `${dateKey}T${time}`;
+  if (new Date(when) < new Date()) return toast("Giờ này đã qua, hãy chọn giờ khác");
+  document.querySelector('nav button[data-tab="post"]').click();
+  document.querySelector('input[name=when][value=later]').checked = true;
+  $("#startAt").disabled = false;
+  $("#startAt").value = when;
+  updatePlan(); window.scrollTo({top: 0, behavior: "smooth"});
+  toast(`Lên lịch đăng ${dmy(dateKey)} lúc ${time} — chọn video và tài khoản`);
+}
+function openDlg(html) { $("#dlgBody").innerHTML = html; $("#dlg").showModal(); }
+$("#dlg").addEventListener("click", (e) => { if (e.target === $("#dlg")) $("#dlg").close(); });
+function showDay(key) {
+  openDlg(`<h3>Ngày ${key.split("-").reverse().join("/")}</h3>
+    <div style="display:flex;flex-direction:column;gap:4px;max-height:60vh;overflow:auto">${jobsOfDay(key).map(chipHtml).join("")}</div>
+    <div class="dlg-actions"><button class="btn" onclick="dlg.close()">Đóng</button></div>`);
+  $("#dlgBody").querySelectorAll(".chip").forEach(c => { c.removeAttribute("draggable"); c.onclick = () => showGroup(c.dataset.g); });
+}
+function showJob(id) {
+  const j = findJob(id); if (!j) return;
+  const editable = j.status !== "running" && j.status !== "success";
+  openDlg(`<h3>${esc(j.title)}</h3>
+    <dl class="kv">
+      <dt>Nền tảng</dt><dd>${pf(j.platform)} ${esc(j.account_name)}</dd>
+      <dt>File</dt><dd>${esc(fname(j.video_path))}</dd>
+      <dt>Trạng thái</dt><dd><span class="st ${j.status}">${ST[j.status]}</span></dd>
+      <dt>Hẹn lúc</dt><dd>${editable ? `<input type="datetime-local" id="dlgWhen" value="${j.scheduled_at.slice(0, 16)}">` : fmt(j.scheduled_at)}</dd>
+      ${j.finished_at ? `<dt>Kết thúc</dt><dd>${fmt(j.finished_at)}</dd>` : ""}
+      ${j.hashtags ? `<dt>Hashtag</dt><dd>${esc(j.hashtags)}</dd>` : ""}
+      ${j.result_url ? `<dt>Link</dt><dd><a href="${esc(j.result_url)}" target="_blank" rel="noopener">${esc(j.result_url)}</a></dd>` : ""}
+      ${j.error ? `<dt>Lỗi</dt><dd class="err-text">${esc(j.error)}</dd>` : ""}
+      ${j.first_comment ? `<dt>Bình luận đầu</dt><dd style="white-space:pre-wrap">${esc(j.first_comment)}</dd>` : ""}
+      ${j.note ? `<dt>Bình luận</dt><dd>${esc(j.note)}</dd>` : ""}
+      ${j.screenshot ? `<dt>Ảnh lỗi</dt><dd><a href="/api/screenshots/${encodeURIComponent(j.screenshot)}" target="_blank">Xem ảnh</a></dd>` : ""}
+    </dl>
+    <div class="dlg-actions">
+      ${j.status === "pending" ? `<button class="btn danger" onclick="dlg.close();act(${j.id},'cancel')">Huỷ đăng</button>` : ""}
+      ${j.status !== "running" ? `<button class="btn danger" onclick="dlg.close();delJob(${j.id})">Xoá</button>` : ""}
+      ${editable ? `<button class="btn primary" onclick="dlg.close();reschedule(${j.id}, $('#dlgWhen').value)">${j.status === "pending" ? "Lưu giờ mới" : "Đăng lại vào giờ này"}</button>` : ""}
+      <button class="btn" onclick="dlg.close()">Đóng</button>
+    </div>`);
+}
+const dlg = $("#dlg");
+
+
+// ---------- Gemini ----------
+let GACCS = [], GTASKS = [], GSCAN = [], GSET = {}, GPICK = null;
+const GST = {pending: "Chờ nạp", running: "Đang nạp…", done: "Đã nạp", failed: "Lỗi"};
+const GACC_ST = {ok: ["success", "Sẵn sàng"], limit: ["pending", "Hết lượt"], login: ["failed", "Chưa đăng nhập"], off: ["cancelled", "Đã tắt"]};
+async function loadGem() {
+  [GACCS, GTASKS] = await Promise.all([api("/api/gem/accounts"), api("/api/gem/tasks")]);
+  if (GPICK === null) GPICK = new Set(GACCS.filter(a => a.status !== "off").map(a => a.id));
+  const run = GTASKS.filter(t => t.status === "pending" || t.status === "running").length;
+  $("#gcount").style.display = run ? "" : "none"; $("#gcount").textContent = run;
+  renderGem();
+}
+function gemTabLabel(u) { return u.replace(/^https:\/\/gemini\.google\.com\//, "").replace(/^app\//, ""); }
+function renderGem() {
+  $("#gaccBody").innerHTML = GACCS.map(a => {
+    const c = a.counts || {}, total = (c.pending || 0) + (c.running || 0) + (c.done || 0) + (c.failed || 0);
+    const [cls, lbl] = GACC_ST[a.status] || ["", a.status];
+    const TS = {pending: "chờ nạp", running: "đang nạp", done: "đã nạp", failed: "lỗi"};
+    const tabs = a.tabs.length ? a.tabs.map((u, i) => {
+      const x = a.running[i], w = (a.watching || {})[i], busy = w || (x && (x.status === "pending" || x.status === "running"));
+      return `<div class="gem-tab"><span class="dot ${busy ? "busy" : ""}"></span><a href="${esc(u)}" target="_blank" class="txt">Tab ${i + 1}</a>
+        <span class="txt muted" title="${esc(x ? x.name : "")}">${w ? "Gemini đang làm: " + esc(w) : x ? TS[x.status] + ": " + esc(x.name) : "chưa nạp"}</span>${(a.queue || {})[i] ? `<span class="st pending" style="white-space:nowrap">+${a.queue[i]} chờ</span>` : ""}</div>`;
+    }).join("") : `<span class="st failed">Chưa có tab — bấm Mở Chrome hoặc ✎</span>`;
+    const until = a.status === "limit" && a.resume_at ? `<div class="muted">tự chạy lại ${fmt(a.resume_at)}</div>` : "";
+    return `<tr><td><b>${esc(a.name)}</b></td><td><div class="gem-tabs">${tabs}</div></td>
+      <td style="min-width:130px">${c.done || 0}/${total} đã nạp${c.pending ? ` · ${c.pending} chờ` : ""}${c.failed ? ` · <span class="st failed">${c.failed} lỗi</span>` : ""}
+        <div class="gem-bar"><i style="width:${total ? Math.round(100 * (c.done || 0) / total) : 0}%"></i></div></td>
+      <td><span class="st ${cls}">${lbl}</span>${a.login_open ? `<div class="st running">🖥 Cửa sổ đăng nhập đang mở — đóng lại để tool nạp video</div>` : a.chrome_open ? `<div class="muted">🖥 Chrome đang mở để xem</div>` : ""}${until}${a.note ? `<div class="muted" style="max-width:220px">${esc(a.note)}</div>` : ""}</td>
+      <td style="white-space:nowrap"><button class="btn sm" onclick="gemLogin(${a.id})">Mở Chrome</button>
+        <button class="btn sm" onclick="gemRefresh(${a.id})" title="Mở các cuộc trò chuyện Gemini mới + dán câu lệnh thiết lập">🆕 Làm mới tab</button>
+        <button class="btn sm" onclick="gemEdit(${a.id})" title="Sửa tên / link tab">✎</button>
+        ${a.status === "ok" ? `<button class="btn sm" onclick="gemAct(${a.id},'off')">Tắt</button>` : `<button class="btn sm primary" onclick="gemAct(${a.id},'resume')">▶ Tiếp tục</button>`}
+        <button class="btn sm danger" onclick="gemDel(${a.id})">Xoá</button></td></tr>`;
+  }).join("") || `<tr><td colspan="5" class="muted">Chưa có tài khoản Gemini.</td></tr>`;
+
+  $("#gPick").innerHTML = GACCS.map(a => `<label class="acc-pick"><input type="checkbox" ${GPICK.has(a.id) ? "checked" : ""} onchange="gemPickToggle(${a.id}, this.checked)">
+    ${esc(a.name)} <span class="muted">(${a.tabs.length} tab${a.status !== "ok" ? " · " + (GACC_ST[a.status] || [0, a.status])[1] : ""})</span></label>`).join("")
+    || `<span class="muted">Thêm tài khoản Gemini ở trên trước.</span>`;
+  gemPlan();
+
+  const sel = $("#gAccFilter"), cur = sel.value;
+  sel.innerHTML = `<option value="">Mọi tài khoản</option>` + GACCS.map(a => `<option value="${a.id}">${esc(a.name)}</option>`).join("");
+  sel.value = cur;
+  const f = $("#gFilter").value, af = sel.value;
+  const list = GTASKS.filter(t => (!f || t.status === f) && (!af || String(t.account_id) === af));
+  const by = s => GTASKS.filter(t => t.status === s).length;
+  $("#gSummary").textContent = `Chờ ${by("pending")} · Đang nạp ${by("running")} · Đã nạp ${by("done")} · Lỗi ${by("failed")}`;
+  $("#gBody").innerHTML = list.map(t => `<tr><td>${t.id}</td><td title="${esc(t.video_path)}">${esc(fname(t.video_path))}</td>
+    <td>${esc(t.account_name || "—")}${t.tab_idx != null && t.status !== "pending" ? ` <span class="muted">· tab ${t.tab_idx + 1}</span>` : ""}</td>
+    <td><span class="st ${{pending: "pending", running: "running", done: "success", failed: "failed"}[t.status]}">${GST[t.status] || t.status}</span>
+      ${t.finished_at ? `<div class="muted">${fmt(t.finished_at)}</div>` : ""}
+      ${t.error ? `<div class="muted" style="color:var(--err);max-width:300px">${esc(t.error)}</div>` : ""}
+      ${t.screenshot ? `<a href="/api/screenshots/${esc(t.screenshot)}" target="_blank">ảnh lỗi</a>` : ""}</td>
+    <td>${t.chat_url ? `<a href="${esc(t.chat_url)}" target="_blank">Mở tab để kiểm tra ↗</a>` : ""}</td>
+    <td style="white-space:nowrap">${t.status === "failed" || t.status === "done" ? `<button class="btn sm" onclick="gemTask(${t.id},'retry')">Nạp lại</button>` : ""}
+      ${t.status === "pending" ? `<button class="btn sm danger" onclick="gemTask(${t.id},'delete')" title="Bỏ khỏi hàng chờ (coi như chưa gửi)">✕</button>` : ""}
+      ${t.status === "done" || t.status === "failed" ? `<button class="btn sm" onclick="gemTask(${t.id},'hide')" title="Ẩn dòng (vẫn nhớ là đã gửi)">Ẩn</button>` : ""}</td></tr>`).join("")
+    || `<tr><td colspan="6" class="muted">Chưa có video.</td></tr>`;
+}
+function gemPickToggle(id, on) { on ? GPICK.add(id) : GPICK.delete(id); gemPlan(); }
+function gemPlan() {
+  const ids = GACCS.filter(a => GPICK.has(a.id));
+  const fresh = GSCAN.filter(f => !f.sent && !f.dup_of).length;
+  if (!GSCAN.length || !ids.length) { $("#gPlan").textContent = ""; return; }
+  const ready = ids.filter(a => a.status === "ok");
+  const free = ready.reduce((k, a) => k + a.tabs.length, 0);
+  const n = Math.min(free, fresh);
+  $("#gPlan").textContent = !fresh ? "Mọi video trong thư mục đã được nạp rồi."
+    : !free ? "Chưa có tab nào để nạp (tài khoản chưa có tab / chưa sẵn sàng)."
+    : `Mỗi lần bấm: ${free} tab, mỗi tab +1 video → ${n} video tiếp theo (theo thứ tự thư mục). Tab đang bận thì video xếp hàng, Gemini làm xong video trước mới gửi. Còn lại sau lần bấm này: ${fresh - n} video.`;
+}
+async function gemScan(quiet = false) {
+  const folder = $("#gFolder").value.trim();
+  if (!folder) { if (!quiet) toast("Nhập đường dẫn thư mục"); return; }
+  try { localStorage.setItem("gFolder", folder); } catch {}
+  try {
+    const r = await api("/api/gem/scan?folder=" + encodeURIComponent(folder));
+    GSCAN = r.files;
+    const left = r.total - r.sent;
+    $("#gProg").hidden = false;
+    const left2 = left - r.dups;
+    $("#gProgTxt").innerHTML = (!r.total ? "Thư mục không có video."
+      : r.sent ? `Đã nạp <b>${r.sent}/${r.total}</b> video — tới video thứ <b>${r.last_index + 1}</b>: <b>${esc(r.last_name)}</b>. Còn <b>${left2}</b> video chưa nạp.`
+      : `Có ${r.total} video, <b>chưa nạp video nào</b>.`)
+      + (r.dups ? ` <span class="st pending">⚠ ${r.dups} video trùng nội dung — sẽ bỏ qua</span>` : "");
+    $("#gProgBar").style.width = (r.total ? Math.round(100 * r.sent / r.total) : 0) + "%";
+    const SS = {pending: ["pending", "Chờ nạp"], running: ["running", "Đang nạp"], done: ["success", "Đã nạp"], failed: ["failed", "Lỗi"]};
+    $("#gScanBody").innerHTML = GSCAN.map((f, i) => {
+      const x = f.sent;
+      if (!x) return `<tr><td>${i + 1}</td><td>${esc(f.name)}</td><td>${f.dup_of ? `<span class="st pending">⚠ ${f.dup_of.includes("_vietsub") ? esc(f.dup_of) : "Trùng với " + esc(f.dup_of)}</span>` : `<span class="muted">Chưa nạp</span>`}</td></tr>`;
+      const [c, l] = SS[x.status] || ["", x.status];
+      return `<tr><td>${i + 1}</td><td>${esc(f.name)}</td><td><span class="st ${c}">${l}</span>
+        <span class="muted">· ${esc(x.account_name || "—")}${x.tab_idx != null ? " tab " + (x.tab_idx + 1) : ""} · ${fmt(x.finished_at || x.created_at)}</span>
+        ${x.chat_url ? ` <a href="${esc(x.chat_url)}" target="_blank">↗</a>` : ""}${f.dup_of ? ` <span class="st pending">⚠ cùng nội dung với ${esc(f.dup_of)}</span>` : ""}</td></tr>`;
+    }).join("");
+    gemPlan();
+  } catch (e) { if (!quiet) toast(e.message); }
+}
+async function gemStart() {
+  if (!GSCAN.length) return toast("Quét thư mục video trước");
+  const ids = [...GPICK].filter(id => GACCS.some(a => a.id === id));
+  if (!ids.length) return toast("Chọn ít nhất 1 tài khoản Gemini");
+  try {
+    const r = await api("/api/gem/batch", json("POST", {paths: GSCAN.map(v => v.path), account_ids: ids}));
+    if (!r.created) { toast("Không còn video nào chưa nạp trong thư mục này"); return gemScan(true); }
+    openDlg(`<h3 style="margin-top:0">🚀 Lượt nạp: ${r.created} video</h3>
+      <table><thead><tr><th>Tài khoản</th><th>Tab</th><th>Video</th></tr></thead><tbody>
+      ${r.items.map(m => `<tr><td>${esc(m.account)}</td><td>Tab ${m.tab + 1}</td><td>${esc(m.name)}</td></tr>`).join("")}</tbody></table>
+      ${r.dups.length ? `<p class="st pending">⚠ Bỏ qua ${r.dups.length} video trùng nội dung:</p><ul class="muted">${r.dups.map(d => `<li>${esc(d.name)} = ${esc(d.dup_of)}</li>`).join("")}</ul>` : ""}
+      <p class="muted">Còn ${r.left} video chưa nạp — lần sau bấm Nạp video lại là tool nạp tiếp từ đó.</p>
+      <div class="quick"><button class="btn" onclick="dlg.close()">Đóng</button></div>`);
+    await loadGem(); gemScan(true);
+  } catch (e) { toast(e.message); }
+}
+async function gemAddAcc() {
+  const name = $("#gNewName").value.trim();
+  if (!name) return toast("Nhập tên tài khoản");
+  try {
+    const r = await api("/api/gem/accounts", json("POST", {name, tabs: $("#gNewTabs").value}));
+    $("#gNewName").value = ""; $("#gNewTabs").value = "";
+    if (GPICK) GPICK.add(r.id);
+    toast("Đã thêm — bấm Mở Chrome để đăng nhập Google và mở 3 cuộc trò chuyện"); loadGem();
+  } catch (e) { toast(e.message); }
+}
+function gemEdit(id) {
+  const a = GACCS.find(x => x.id === id);
+  openDlg(`<h3 style="margin-top:0">Sửa tài khoản Gemini</h3>
+    <label>Tên</label><input type="text" id="gEdName" value="${esc(a.name)}">
+    <label>Link các cuộc trò chuyện (mỗi dòng 1 link)</label><textarea id="gEdTabs" rows="4">${esc(a.tabs.join("\n"))}</textarea>
+    <div class="quick" style="margin-top:12px"><button class="btn primary" onclick="gemSaveEdit(${id})">Lưu</button><button class="btn" onclick="dlg.close()">Đóng</button></div>`);
+}
+async function gemSaveEdit(id) {
+  try { await api(`/api/gem/accounts/${id}`, json("PUT", {name: $("#gEdName").value, tabs: $("#gEdTabs").value})); dlg.close(); toast("Đã lưu"); loadGem(); }
+  catch (e) { toast(e.message); }
+}
+async function gemLogin(id) {
+  try { const r = await api(`/api/gem/accounts/${id}/login`, {method: "POST"});
+    toast(r.status === "already_open" ? "Chrome của tài khoản này đang mở rồi" : "Đã mở Chrome — đăng nhập, mở 3 cuộc trò chuyện rồi đóng cửa sổ"); }
+  catch (e) { toast(e.message); }
+}
+async function gemAct(id, a) { try { await api(`/api/gem/accounts/${id}/${a}`, {method: "POST"}); loadGem(); } catch (e) { toast(e.message); } }
+async function gemDel(id) {
+  if (!confirm("Xoá tài khoản Gemini này? Video đang chờ của nó sẽ được chia cho tài khoản khác.")) return;
+  try { const r = await api(`/api/gem/accounts/${id}`, {method: "DELETE"}); GPICK && GPICK.delete(id); toast(`Đã xoá, chia lại ${r.moved} video`); loadGem(); }
+  catch (e) { toast(e.message); }
+}
+async function gemTask(id, a) { try { await api(`/api/gem/tasks/${id}/${a}`, {method: "POST"}); loadGem(); } catch (e) { toast(e.message); } }
+async function gemPost(url, msg) { try { toast(msg(await api(url, {method: "POST"}))); loadGem(); } catch (e) { toast(e.message); } }
+function gemShowPause() {
+  const p = GSET.paused === "1", b = $("#gemPauseBtn");
+  b.textContent = p ? "▶ Tiếp tục nạp" : "⏸ Tạm dừng nạp";
+  b.style.background = p ? "#c0392b" : ""; b.style.color = p ? "#fff" : "";
+}
+async function gemLoadSettings() {
+  GSET = await api("/api/gem/settings");
+  $("#gSetup").value = GSET.setup_prompt; $("#gTabCount").value = GSET.tab_count;
+  $("#gDlDir").value = GSET.download_dir; $("#gDlEff").textContent = "Đang lưu vào: " + GSET.download_dir_effective;
+  $("#gAuto").checked = GSET.auto_next === "1"; $("#gModel").value = GSET.model; $("#gKeep").checked = GSET.keep_open === "1"; $("#gPrompt").value = GSET.prompt; $("#gParallel").value = GSET.parallel; $("#gGap").value = GSET.gap;
+  $("#gCooldown").value = GSET.cooldown; gemShowPause();
+}
+async function gemSaveSettings() {
+  try {
+    GSET = await api("/api/gem/settings", json("PUT", {download_dir: $("#gDlDir").value.trim(), model: $("#gModel").value.trim(), keep_open: $("#gKeep").checked ? "1" : "0", prompt: $("#gPrompt").value, parallel: $("#gParallel").value || 1,
+      gap: $("#gGap").value || 0, cooldown: $("#gCooldown").value || 24}));
+    $("#gDlEff").textContent = "Đang lưu vào: " + GSET.download_dir_effective; toast("Đã lưu tuỳ chọn Gemini");
+  } catch (e) { toast(e.message); }
+}
+async function gemSaveSetup(quiet = false) {
+  GSET = await api("/api/gem/settings", json("PUT", {setup_prompt: $("#gSetup").value, tab_count: $("#gTabCount").value || 3}));
+  $("#gSetupNote").textContent = "✓ Đã lưu"; if (!quiet) toast("Đã lưu câu lệnh thiết lập");
+}
+async function gemRefresh(id) {
+  const a = GACCS.find(x => x.id === id);
+  if (!confirm(`Mở ${$("#gTabCount").value || 3} cuộc trò chuyện Gemini MỚI cho "${a.name}" và dán câu lệnh thiết lập?`)) return;
+  try { await gemSaveSetup(true); await api(`/api/gem/accounts/${id}/refresh`, {method: "POST"}); toast("Đang mở phiên mới…"); loadGem(); }
+  catch (e) { toast(e.message); }
+}
+async function gemRefreshAll() {
+  if (!confirm("Mở cuộc trò chuyện Gemini MỚI cho TẤT CẢ tài khoản và dán câu lệnh thiết lập?")) return;
+  try { await gemSaveSetup(true); const r = await api("/api/gem/refresh_all", {method: "POST"}); toast(`Đang mở phiên mới cho ${r.accounts} tài khoản…`); loadGem(); }
+  catch (e) { toast(e.message); }
+}
+async function gemSetAuto() {
+  try { GSET = await api("/api/gem/settings", json("PUT", {auto_next: $("#gAuto").checked ? "1" : "0"}));
+    toast($("#gAuto").checked ? "Đã BẬT tự nạp tiếp" : "Đã TẮT tự nạp tiếp — mỗi lần bấm chỉ nạp 1 video/tab"); } catch (e) { toast(e.message); }
+}
+async function gemTogglePause() {
+  GSET = await api("/api/gem/settings", json("PUT", {paused: GSET.paused === "1" ? "0" : "1"}));
+  gemShowPause(); toast(GSET.paused === "1" ? "Đã tạm dừng — tab đang làm dở vẫn chạy nốt" : "Tiếp tục nạp video");
+}
+try { $("#gFolder").value = localStorage.getItem("gFolder") || ""; } catch {}
+document.querySelector('nav button[data-tab="gemini"]').addEventListener("click", () => gemScan(true));   // mở tab -> hiện ngay đã gửi tới đâu
+
+// ---------- Tải Douyin ----------
+let DY = {scan: null, dl: null, sel: new Set(), timer: null, folderEdited: false, nick: null};
+const dyDate = (t) => t ? new Date(t * 1000).toLocaleDateString("vi-VN") : "";
+const dyDur = (s) => s ? `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}` : "";
+async function dyScan(keepFolder) {
+  if (DY.scan && DY.scan.running) { await api("/api/dy/scan/stop", {method: "POST"}); return toast("Đang dừng…"); }
+  const url = $("#dyUrl").value.trim();
+  if (!url) return toast("Dán link kênh Douyin trước");
+  try {
+    await api("/api/dy/scan", json("POST", {url, limit: +$("#dyLimit").value || 0}));
+    try { localStorage.setItem("dyUrl", url); } catch {}
+    DY.sel.clear(); if (keepFolder !== true) DY.folderEdited = false; DY.nick = null; DY.scan = null; dyPoll();
+  } catch (e) { toast(e.message); }
+}
+async function dyLogin() {
+  try { const r = await api("/api/dy/login", {method: "POST"});
+    toast(r.status === "already_open" ? "Cửa sổ đăng nhập đang mở" : "Đã mở Chrome — quét QR đăng nhập Douyin rồi đóng cửa sổ"); dyPoll();
+  } catch (e) { toast(e.message); }
+}
+async function dyStop() { await api("/api/dy/download/stop", {method: "POST"}); toast("Đang dừng…"); }
+function dyPick(mode) {
+  const items = (DY.scan && DY.scan.items || []).filter(i => !i.is_image);
+  DY.sel.clear();
+  if (mode === "all") items.forEach(i => DY.sel.add(i.aweme_id));
+  if (mode === "new") items.filter(i => !i.downloaded).forEach(i => DY.sel.add(i.aweme_id));
+  if (mode === "fresh") items.filter(i => i.is_new).forEach(i => DY.sel.add(i.aweme_id));
+  dyRender();
+}
+const DY_ST = {wait: ["pending", "Chờ tải"], run: ["running", "Đang tải"], done: ["success", "Đã tải ✓"], fail: ["failed", "Lỗi"], skip: ["success", "Đã có ✓"]};
+function dyRender() {
+  const s = DY.scan, d = DY.dl || {};
+  if (!s) return;
+  const busy = !!s.running, running = !!d.running;
+  $("#dyScanBtn").textContent = busy ? "⏹ Dừng lấy danh sách" : "🔎 Lấy danh sách";
+  const lg = s.login || {};
+  $("#dyLoginSt").innerHTML = lg.window_open ? `<span class="st running">Cửa sổ đăng nhập đang mở — đăng nhập xong thì đóng cửa sổ.</span>`
+    : lg.logged_in ? `<span class="st success">✓ Đã đăng nhập Douyin</span>` : `<span class="st pending">⚠ Chưa đăng nhập Douyin — chỉ lấy được khoảng 20 video đầu mỗi kênh</span>`;
+  $("#dyLoginBtn").disabled = !!lg.window_open || busy;
+  $("#dyScanBtn").disabled = !!lg.window_open;
+  $("#dyScanMsg").innerHTML = (s.error ? `<span class="st failed">⚠ ${esc(s.error)}</span> ` : "") + esc(s.msg || "");
+  dyBadge();
+  const items = s.items || [];
+  $("#dyListCard").hidden = !items.length;
+  if (!items.length) return;
+  const nick = s.nickname || "";
+  const ch = (DY.channels || []).find(c => c.sec_uid === s.sec_uid);
+  const nDone = items.filter(i => i.downloaded).length, nNew = items.filter(i => i.is_new).length;
+  $("#dyTitle").textContent = `📺 ${ch && ch.label ? ch.label + " (" + nick + ")" : nick || "Kênh"} — ${items.length} video · đã tải ${nDone}` + (nNew ? ` · ${nNew} video MỚI` : "");
+  if (!DY.folderEdited && !running && DY.nick !== nick) {
+    const safe = nick.replace(/#\S+/g, "").replace(/[\\/:*?"<>|]+/g, " ").replace(/\s+/g, " ").trim().slice(0, 60) || s.sec_uid || "kenh";
+    $("#dyFolder").value = (s.root || "").replace(/[\\/]+$/, "") + "\\" + safe; DY.nick = nick;
+  }
+  const di = d.items || {};
+  const hide = $("#dyHideDone").checked;
+  const isDone = (i) => { const x = di[i.aweme_id]; return !!(i.downloaded || (x && (x.st === "done" || x.st === "skip"))); };
+  // ---- gom nhóm: phim bộ / video lẻ / bài ảnh
+  const gmap = new Map();
+  for (const i of items) if (!i.is_image && i.grp) {
+    if (!gmap.has(i.grp)) gmap.set(i.grp, {key: i.grp, name: i.grp_name, label: i.grp_label, items: []});
+    gmap.get(i.grp).items.push(i);
+  }
+  const gl = [...gmap.values()];
+  gl.forEach(g => { g.items.sort((x, y) => x.order - y.order || x.create_time - y.create_time); g.last = Math.max(...g.items.map(i => i.create_time)); });
+  gl.sort((x, y) => y.last - x.last);
+  const singles = items.filter(i => !i.is_image && !i.grp), images = items.filter(i => i.is_image);
+  DY.groups = gl;
+  let f = DY.filter || "";
+  if (f && f !== "__single" && !gmap.has(f)) f = DY.filter = "";
+  const cnt = (arr) => `<span style="opacity:.75">${arr.filter(isDone).length}/${arr.length}</span>`;
+  $("#dyGroups").innerHTML = busy ? `<span class="muted">Đang lấy danh sách — lấy xong tool tự chia phim bộ / video lẻ.</span>` :
+    `<span class="muted">Phân loại:</span>`
+    + `<button class="btn sm ${!f ? "primary" : ""}" data-dyf="">Tất cả ${cnt(items.filter(i => !i.is_image))}</button>`
+    + `<button class="btn sm ${f === "__single" ? "primary" : ""}" data-dyf="__single">🎬 Video lẻ ${cnt(singles)}</button>`
+    + gl.map(g => `<button class="btn sm ${f === g.key ? "primary" : ""}" data-dyf="${esc(g.key)}" title="${esc(g.name)}">📚 ${esc(g.label || g.name)} ${cnt(g.items)}</button>`).join("");
+  $("#dyGroups").querySelectorAll("[data-dyf]").forEach(b => b.onclick = () => { DY.filter = b.dataset.dyf; dyRender(); });
+  const secs = [];
+  if (busy) secs.push({flat: true, items});
+  else {
+    if (f !== "__single") gl.filter(g => !f || f === g.key).forEach(g => secs.push({g, items: g.items}));
+    if (!f || f === "__single") singles.length && secs.push({items: singles});
+    if (!f && images.length) secs.push({img: true, items: images});
+  }
+  const row = (i, k) => {
+    const x = di[i.aweme_id];
+    if (hide && isDone(i) && !(x && x.st === "run")) return "";
+    const st = i.is_image ? `<span class="muted">Bài ảnh — bỏ qua</span>`
+      : x ? `<span class="st ${DY_ST[x.st][0]}">${DY_ST[x.st][1]}${x.st === "run" && x.pct != null ? ` ${x.pct}%` : ""}</span>${x.err ? `<div class="muted" style="font-size:12px">${esc(x.err)}</div>` : ""}`
+      : i.downloaded ? `<span class="st success" title="${esc(i.downloaded)}">Đã tải ✓</span>${i.file_missing ? `<div class="muted" style="font-size:12px">file đã chuyển/xoá</div>` : ""}` : `<span class="muted">Chưa tải</span>`;
+    const done = isDone(i), isNew = i.is_new && !done;
+    return `<tr class="${done ? "dy-done" : isNew ? "dy-isnew" : ""}"><td><input type="checkbox" data-dy="${esc(i.aweme_id)}" ${DY.sel.has(i.aweme_id) ? "checked" : ""} ${i.is_image ? "disabled" : ""}></td>
+      <td>${k + 1}</td>
+      <td class="vthumb">${i.cover ? `<img src="${esc(i.cover)}" referrerpolicy="no-referrer" loading="lazy" alt="">` : `<div class="noimg">🎬</div>`}</td>
+      <td style="max-width:420px">${isNew ? `<span class="tag-new" title="Phát hiện lúc ${esc(fmt(i.first_seen))} — chưa có ở lần lấy trước">MỚI</span>` : ""}${i.grp ? `<span class="ep-pill ${i.kind === "comp" ? "comp" : ""}">${esc(i.ep_label)}</span>` : ""}${i.is_top ? "📌 " : ""}${esc(i.desc) || `<span class="muted">(không có mô tả)</span>`}
+        <div class="muted" style="font-size:12px"><a href="https://www.douyin.com/video/${esc(i.aweme_id)}" target="_blank">mở trên Douyin</a> · ❤ ${(+i.likes || 0).toLocaleString("vi-VN")}</div></td>
+      <td style="white-space:nowrap">${dyDate(i.create_time)}</td><td>${dyDur(i.duration)}</td><td>${st}</td></tr>`;
+  };
+  const head = (sec) => {
+    if (sec.flat) return "";
+    const ids = sec.items.filter(i => !i.is_image).map(i => i.aweme_id);
+    const all = ids.length && ids.every(id => DY.sel.has(id));
+    const eps = sec.g ? sec.items.filter(i => i.kind !== "comp").length : 0, comps = sec.g ? sec.items.length - eps : 0;
+    const title = sec.img ? `🖼 Bài ảnh <span class="muted" style="font-weight:400">(không tải được)</span>`
+      : sec.g ? `📚 Phim bộ: ${esc(sec.g.label || sec.g.name)}${sec.g.label ? ` <span class="muted" style="font-weight:400">(${esc(sec.g.name)})</span>` : ""} · ${eps} tập${comps ? ` + ${comps} tuyển tập` : ""}`
+      : `🎬 Video lẻ · ${sec.items.length} video`;
+    return `<tr class="dy-grp"><td>${sec.img ? "" : `<input type="checkbox" data-dygrp="${sec.g ? esc(sec.g.key) : "__single"}" ${all ? "checked" : ""} title="Chọn cả nhóm">`}</td>
+      <td colspan="6"><b>${title}</b> <span class="muted">· đã tải ${sec.items.filter(isDone).length}/${sec.items.length}</span>
+      ${sec.g ? ` <button class="btn sm" data-dygl="${esc(sec.g.key)}" title="Đặt tên tiếng Việt cho phim bộ — dùng làm tên thư mục khi tải">✎ Đặt tên</button>` : ""}</td></tr>`;
+  };
+  $("#dyBody").innerHTML = secs.map(sec => head(sec) + sec.items.map(row).join("")).join("");
+  $("#dyBody").querySelectorAll("input[data-dy]").forEach(c => c.onchange = () => {
+    c.checked ? DY.sel.add(c.dataset.dy) : DY.sel.delete(c.dataset.dy); dyRender();
+  });
+  $("#dyBody").querySelectorAll("input[data-dygrp]").forEach(c => c.onchange = () => {
+    const k = c.dataset.dygrp, arr = k === "__single" ? singles : (gmap.get(k) || {items: []}).items;
+    arr.forEach(i => c.checked ? DY.sel.add(i.aweme_id) : DY.sel.delete(i.aweme_id)); dyRender();
+  });
+  $("#dyBody").querySelectorAll("[data-dygl]").forEach(b => b.onclick = async () => {
+    const g = gmap.get(b.dataset.dygl);
+    const v = prompt(`Tên tiếng Việt cho phim bộ "${g.name}" (dùng làm tên thư mục khi tải):`, g.label || "");
+    if (v === null) return;
+    try { await api("/api/dy/groups", json("PUT", {sec_uid: s.sec_uid, gkey: g.key, label: v})); dyPoll(); } catch (e) { toast(e.message); }
+  });
+  dyInfo();
+  $("#dyDlBtn").disabled = running || busy; $("#dyStopBtn").hidden = !running;
+  $("#dyProg").hidden = !d.total;
+  if (d.total) {
+    const n = (d.done || 0) + (d.failed || 0) + (d.skipped || 0);
+    $("#dyProgTxt").textContent = (running ? `Đang tải ${n}/${d.total}` : (d.stopped ? `Đã dừng ở ${n}/${d.total}` : `Xong ${n}/${d.total}`))
+      + ` — thành công ${d.done || 0}` + (d.skipped ? `, đã có sẵn ${d.skipped}` : "") + (d.failed ? `, lỗi ${d.failed}` : "")
+      + ` · ${d.folder || ""}` + (d.error ? ` · ⚠ ${d.error}` : "");
+    $("#dyProgBar").style.width = (n * 100 / d.total) + "%";
+    const fl = Object.entries(d.folders || {});
+    $("#dyAfter").hidden = running || !fl.length;
+    $("#dyAfter").innerHTML = `<span class="muted">Chuyển sang tab Dịch video:</span>` + fl.map(([fd, n]) =>
+      `<button class="btn sm" data-dygem="${esc(fd)}" title="${esc(fd)}">🤖 ${esc(fd.split(/[\/]/).pop())} (${n})</button>`).join("")
+      + (fl.length ? ` <button class="btn sm" data-dyopen="${esc(d.folder)}">📂 Mở thư mục kênh</button>` : "");
+    $("#dyAfter").querySelectorAll("[data-dygem]").forEach(b => b.onclick = () => dyToGemini(b.dataset.dygem));
+    $("#dyAfter").querySelectorAll("[data-dyopen]").forEach(b => b.onclick = () =>
+      api("/api/dy/open_folder", json("POST", {folder: b.dataset.dyopen})).catch(e => toast(e.message)));
+  }
+}
+function dyBadge() {
+  const s = DY.scan || {}, d = DY.dl || {}, b = $("#dyBadge");
+  const nNew = (DY.channels || []).reduce((n, c) => n + (c.new_count || 0), 0);
+  b.classList.remove("warn");
+  if (d.running) b.textContent = `${(d.done || 0) + (d.failed || 0) + (d.skipped || 0)}/${d.total}`;
+  else if (s.running) b.textContent = "…";
+  else if (nNew) { b.textContent = `${nNew} MỚI`; b.classList.add("warn"); }
+  b.style.display = d.running || s.running || nNew ? "" : "none";
+}
+const dyDay = (t) => t ? new Date(t * 1000).toLocaleDateString("vi-VN") : "—";
+async function dyLoadChannels() {
+  try { DY.channels = await api("/api/dy/channels"); } catch (e) { return; }
+  const cs = DY.channels;
+  $("#dyChCard").hidden = !cs.length;
+  dyBadge();
+  const cur = DY.scan && DY.scan.sec_uid;
+  $("#dyChBody").innerHTML = cs.map(c => {
+    const tot = c.total || c.listed || 0, pct = tot ? Math.min(100, c.downloaded * 100 / tot) : 0;
+    return `<tr class="${c.sec_uid === cur ? "dy-cur" : c.new_count ? "dy-isnew" : ""}">
+      <td><div class="dy-ch">${c.avatar ? `<img class="dy-ava" src="${esc(c.avatar)}" referrerpolicy="no-referrer" alt="">` : `<div class="dy-ava"></div>`}
+        <div><div class="dy-lbl">${c.new_count ? `<span class="tag-new">MỚI</span>` : ""}${c.label ? esc(c.label) : `<span class="muted" style="font-weight:400">(chưa đặt tên)</span>`}
+          <button class="btn sm" data-dylbl="${esc(c.sec_uid)}" title="Đặt tên gợi nhớ">✎</button></div>
+          <div class="muted" style="font-size:12px">${esc(c.nickname)} · <a href="${esc(c.url)}" target="_blank">mở kênh</a></div></div></div></td>
+      <td style="white-space:nowrap"><b>${c.downloaded}</b> / ${tot || "?"} video<div class="gem-bar"><i style="width:${pct}%"></i></div></td>
+      <td style="white-space:nowrap">${c.downloaded ? `${dyDay(c.first_dl)} → <b>${dyDay(c.last_dl)}</b>` : `<span class="muted">chưa tải video nào</span>`}
+        ${c.newest && c.last_dl && c.newest > c.last_dl ? `<div class="muted" style="font-size:12px">video mới nhất kênh: ${dyDay(c.newest)}</div>` : ""}</td>
+      <td style="white-space:nowrap">${c.not_downloaded ? `<b>${c.not_downloaded}</b> video` : `<span class="st success">Hết ✓</span>`}
+        ${c.new_count ? `<div style="margin-top:3px"><span class="tag-new">MỚI</span><b>${c.new_count}</b> video <span class="muted" style="font-size:12px">(từ ${esc(fmt(c.new_since))})</span></div>` : ""}
+        ${c.total && c.listed < c.total ? `<div class="muted" style="font-size:12px">mới lấy ${c.listed}/${c.total} trong danh sách</div>` : ""}</td>
+      <td style="white-space:nowrap">${fmt(c.scanned_at)}${c.last_download_at ? `<div class="muted" style="font-size:12px">tải lần cuối ${fmt(c.last_download_at)}</div>` : ""}</td>
+      <td style="text-align:right;white-space:nowrap">
+        <button class="btn sm primary" data-dyre="${esc(c.sec_uid)}" title="Lấy danh sách mới nhất của kênh">🔄 Lấy lại</button>
+        ${c.folder ? `<button class="btn sm" data-dyfold="${esc(c.folder)}" title="${esc(c.folder)}">📂</button>` : ""}
+        <button class="btn sm danger" data-dydel="${esc(c.sec_uid)}" title="Xoá khỏi danh sách (không xoá video đã tải)">✕</button></td></tr>`;
+  }).join("");
+  const by = (id) => cs.find(c => c.sec_uid === id);
+  $("#dyChBody").querySelectorAll("[data-dylbl]").forEach(b => b.onclick = async () => {
+    const c = by(b.dataset.dylbl);
+    const v = prompt(`Tên gợi nhớ cho kênh "${c.nickname}":`, c.label || "");
+    if (v === null) return;
+    await api("/api/dy/channels/" + encodeURIComponent(c.sec_uid), json("PUT", {label: v}));
+    dyLoadChannels().then(dyRender);
+  });
+  $("#dyChBody").querySelectorAll("[data-dyre]").forEach(b => b.onclick = () => {
+    const c = by(b.dataset.dyre);
+    if (DY.scan && DY.scan.running) return toast("Đang lấy danh sách kênh khác");
+    $("#dyUrl").value = c.url; $("#dyLimit").value = 0;
+    if (c.folder) { $("#dyFolder").value = c.folder; DY.folderEdited = true; }
+    dyScan(true);
+  });
+  $("#dyChBody").querySelectorAll("[data-dyfold]").forEach(b => b.onclick = () =>
+    api("/api/dy/open_folder", json("POST", {folder: b.dataset.dyfold})).catch(e => toast(e.message)));
+  $("#dyChBody").querySelectorAll("[data-dydel]").forEach(b => b.onclick = async () => {
+    const c = by(b.dataset.dydel);
+    if (!confirm(`Xoá kênh "${c.label || c.nickname}" khỏi danh sách? (Video đã tải vẫn giữ, tool vẫn nhớ đã tải)`)) return;
+    await api("/api/dy/channels/" + encodeURIComponent(c.sec_uid), {method: "DELETE"}); dyLoadChannels();
+  });
+}
+function dyInfo() {
+  const n = (DY.scan.items || []).filter(i => !i.is_image).length;
+  $("#dyPickInfo").textContent = `Đã chọn ${DY.sel.size}/${n} video`;
+  $("#dyAll").checked = n > 0 && DY.sel.size === n;
+}
+async function dyLoad() {
+  try {
+    const [s, d] = await Promise.all([api("/api/dy/scan"), api("/api/dy/download")]);
+    const justDone = (!DY.scan || DY.scan.running) && !s.running;
+    if (justDone || (DY.dl && DY.dl.running && !d.running) || !DY.channels) await dyLoadChannels();
+    DY.scan = s; DY.dl = d;
+    // lấy danh sách xong -> chọn sẵn các video chưa tải
+    if (justDone && !DY.sel.size) (s.items || []).filter(i => !i.is_image && !i.downloaded).forEach(i => DY.sel.add(i.aweme_id));
+    dyRender();
+    return s.running || d.running || (s.login && s.login.window_open);
+  } catch (e) { console.error(e); return false; }
+}
+async function dyPoll() {
+  clearTimeout(DY.timer);
+  if (await dyLoad()) DY.timer = setTimeout(dyPoll, 1500);
+}
+async function dyDownload() {
+  if (!DY.sel.size) return toast("Chưa chọn video nào");
+  const ids = (DY.scan.items || []).filter(i => DY.sel.has(i.aweme_id)).map(i => i.aweme_id);
+  try {
+    const r = await api("/api/dy/download", json("POST", {ids, folder: $("#dyFolder").value.trim(), split: $("#dySplit").checked}));
+    $("#dyFolder").value = r.folder; toast(`Bắt đầu tải ${ids.length} video`); dyPoll();
+  } catch (e) { toast(e.message); }
+}
+function dyToGemini(folder) {
+  const f = folder || (DY.dl && DY.dl.folder) || $("#dyFolder").value.trim();
+  $("#gFolder").value = f; try { localStorage.setItem("gFolder", f); } catch {}
+  document.querySelector('nav button[data-tab="gemini"]').click();
+}
+$("#dyFolder").addEventListener("input", () => { DY.folderEdited = true; });
+try { $("#dySplit").checked = localStorage.getItem("dySplit") !== "0"; } catch {}
+$("#dySplit").addEventListener("change", () => { try { localStorage.setItem("dySplit", $("#dySplit").checked ? "1" : "0"); } catch {} });
+try { $("#dyUrl").value = localStorage.getItem("dyUrl") || ""; } catch {}
+document.querySelector('nav button[data-tab="douyin"]').addEventListener("click", () => dyPoll());
+dyPoll();
+
+async function refresh() {
+  try { await loadStock(); await Promise.all([loadAccounts(), loadQueue(), loadHistory(), loadCalendar(), loadComments(), loadGem()]); } catch (e) { console.error(e); }
+}
+let PAUSED = false;
+function showPause() {
+  const b = $("#pauseBtn");
+  b.textContent = PAUSED ? "▶ Tiếp tục đăng" : "⏸ Tạm dừng";
+  b.style.background = PAUSED ? "#c0392b" : "";
+  b.style.color = PAUSED ? "#fff" : "";
+  b.title = PAUSED ? "Đang TẠM DỪNG: tool không đăng bài nào. Bấm để chạy lại." : "Dừng đăng bài mới (bài đang đăng dở vẫn chạy nốt)";
+}
+async function loadPause() { try { PAUSED = (await api("/api/pause")).paused; showPause(); } catch (e) {} }
+async function togglePause() {
+  PAUSED = (await api("/api/pause", { method: "PUT", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ paused: !PAUSED }) })).paused;
+  showPause();
+}
+loadPause();
+(async () => {
+  PLATFORMS = await api("/api/platforms");
+  $("#newPf").innerHTML = Object.entries(PLATFORMS).map(([k, v]) => `<option value="${k}">${v}</option>`).join("");
+  $("#newPf").onchange = () => { $("#newTargetWrap").hidden = $("#newPf").value !== "facebook"; };
+  await loadSettings(); gemLoadSettings(); loadPresets(); loadPrefs(); renderVideos(); refresh();
+  setInterval(() => {
+    loadQueue();
+    if ($("#history").classList.contains("active")) loadHistory();
+    if ($("#comments").classList.contains("active")) loadComments();
+    if ($("#gemini").classList.contains("active") && !dlg.open) loadGem();
+    if ($("#calendar").classList.contains("active") && !dlg.open) loadCalendar();
+  }, 5000);
+})();
+</script>
+</body>
+</html>
