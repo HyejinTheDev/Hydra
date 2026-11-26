@@ -545,7 +545,7 @@
       <h2>📚 Kênh đã lấy</h2>
       <p class="muted" style="margin-top:0">Ghi nhớ từng kênh: đã tải bao nhiêu video, tải tới đâu (theo <b>ngày đăng</b> của video), còn bao nhiêu chưa tải.
         Tag <span class="tag-new">MỚI</span> = video kênh mới đăng (chưa có ở lần lấy trước) và bạn chưa tải — tải xong tag tự mất.
-        Bấm <b>✎</b> để đặt <b>tên gợi nhớ tiếng Việt</b> cho kênh. <b>🔄 Lấy lại</b> = lấy danh sách mới nhất của kênh để tải tiếp video mới.</p>
+        Tên tiếng Việt của kênh và phim bộ được <b>tự dịch</b> (dịch máy, có thể chưa chuẩn) — bấm <b>✎</b> để sửa, <b>🪄</b> để dịch lại. <b>🔄 Lấy lại</b> = lấy danh sách mới nhất của kênh để tải tiếp video mới.</p>
       <div class="table-wrap"><table><thead><tr><th>Kênh</th><th>Đã tải</th><th>Đã tải tới (ngày đăng)</th><th>Chưa tải</th><th>Lấy lần cuối</th><th></th></tr></thead>
         <tbody id="dyChBody"></tbody></table></div>
     </div>
@@ -1924,7 +1924,7 @@ function dyRender() {
   // ---- gom nhóm: phim bộ / video lẻ / bài ảnh
   const gmap = new Map();
   for (const i of items) if (!i.is_image && i.grp) {
-    if (!gmap.has(i.grp)) gmap.set(i.grp, {key: i.grp, name: i.grp_name, label: i.grp_label, items: []});
+    if (!gmap.has(i.grp)) gmap.set(i.grp, {key: i.grp, name: i.grp_name, label: i.grp_label, auto: i.grp_label_auto, folder: i.grp_folder, items: []});
     gmap.get(i.grp).items.push(i);
   }
   const gl = [...gmap.values()];
@@ -1968,10 +1968,11 @@ function dyRender() {
     const all = ids.length && ids.every(id => DY.sel.has(id));
     const eps = sec.g ? sec.items.filter(i => i.kind !== "comp").length : 0, comps = sec.g ? sec.items.length - eps : 0;
     const title = sec.img ? `🖼 Bài ảnh <span class="muted" style="font-weight:400">(không tải được)</span>`
-      : sec.g ? `📚 Phim bộ: ${esc(sec.g.label || sec.g.name)}${sec.g.label ? ` <span class="muted" style="font-weight:400">(${esc(sec.g.name)})</span>` : ""} · ${eps} tập${comps ? ` + ${comps} tuyển tập` : ""}`
+      : sec.g ? `📚 Phim bộ: ${esc(sec.g.label || sec.g.name)}${sec.g.label ? ` <span class="muted" style="font-weight:400">(${esc(sec.g.name)})</span>${sec.g.auto ? ` <span class="muted" style="font-weight:400;font-size:11px" title="Tên do tool tự dịch bằng máy — bấm ✎ để sửa">(tự dịch)</span>` : ""}` : ""} · ${eps} tập${comps ? ` + ${comps} tuyển tập` : ""}`
       : `🎬 Video lẻ · ${sec.items.length} video`;
     return `<tr class="dy-grp"><td>${sec.img ? "" : `<input type="checkbox" data-dygrp="${sec.g ? esc(sec.g.key) : "__single"}" ${all ? "checked" : ""} title="Chọn cả nhóm">`}</td>
       <td colspan="6"><b>${title}</b> <span class="muted">· đã tải ${sec.items.filter(isDone).length}/${sec.items.length}</span>
+      ${sec.g && sec.g.folder ? `<div class="muted" style="font-size:12px;font-weight:400;margin-top:2px" title="${esc(sec.g.folder)}">🔒 Tập mới luôn tải vào: 📂 ${esc(sec.g.folder.split(/[\\/]/).pop())}</div>` : ""}
       ${sec.g ? ` <button class="btn sm" data-dygl="${esc(sec.g.key)}" title="Đặt tên tiếng Việt cho phim bộ — dùng làm tên thư mục khi tải">✎ Đặt tên</button>` : ""}</td></tr>`;
   };
   $("#dyBody").innerHTML = secs.map(sec => head(sec) + sec.items.map(row).join("")).join("");
@@ -1984,7 +1985,8 @@ function dyRender() {
   });
   $("#dyBody").querySelectorAll("[data-dygl]").forEach(b => b.onclick = async () => {
     const g = gmap.get(b.dataset.dygl);
-    const v = prompt(`Tên tiếng Việt cho phim bộ "${g.name}" (dùng làm tên thư mục khi tải):`, g.label || "");
+    const v = prompt(`Tên tiếng Việt cho phim bộ "${g.name}"` + (g.folder ? `
+(Phim đã có thư mục "${g.folder.split(/[\\/]/).pop()}" — đổi tên KHÔNG đổi thư mục, tập mới vẫn tải vào đó)` : " (dùng làm tên thư mục khi tải)") + ":", g.label || "");
     if (v === null) return;
     try { await api("/api/dy/groups", json("PUT", {sec_uid: s.sec_uid, gkey: g.key, label: v})); dyPoll(); } catch (e) { toast(e.message); }
   });
@@ -2000,7 +2002,7 @@ function dyRender() {
     const fl = Object.entries(d.folders || {});
     $("#dyAfter").hidden = running || !fl.length;
     $("#dyAfter").innerHTML = `<span class="muted">Chuyển sang tab Dịch video:</span>` + fl.map(([fd, n]) =>
-      `<button class="btn sm" data-dygem="${esc(fd)}" title="${esc(fd)}">🤖 ${esc(fd.split(/[\/]/).pop())} (${n})</button>`).join("")
+      `<button class="btn sm" data-dygem="${esc(fd)}" title="${esc(fd)}">🤖 ${esc(fd.split(/[\\/]/).pop())} (${n})</button>`).join("")
       + (fl.length ? ` <button class="btn sm" data-dyopen="${esc(d.folder)}">📂 Mở thư mục kênh</button>` : "");
     $("#dyAfter").querySelectorAll("[data-dygem]").forEach(b => b.onclick = () => dyToGemini(b.dataset.dygem));
     $("#dyAfter").querySelectorAll("[data-dyopen]").forEach(b => b.onclick = () =>
@@ -2027,8 +2029,9 @@ async function dyLoadChannels() {
     const tot = c.total || c.listed || 0, pct = tot ? Math.min(100, c.downloaded * 100 / tot) : 0;
     return `<tr class="${c.sec_uid === cur ? "dy-cur" : c.new_count ? "dy-isnew" : ""}">
       <td><div class="dy-ch">${c.avatar ? `<img class="dy-ava" src="${esc(c.avatar)}" referrerpolicy="no-referrer" alt="">` : `<div class="dy-ava"></div>`}
-        <div><div class="dy-lbl">${c.new_count ? `<span class="tag-new">MỚI</span>` : ""}${c.label ? esc(c.label) : `<span class="muted" style="font-weight:400">(chưa đặt tên)</span>`}
-          <button class="btn sm" data-dylbl="${esc(c.sec_uid)}" title="Đặt tên gợi nhớ">✎</button></div>
+        <div><div class="dy-lbl">${c.new_count ? `<span class="tag-new">MỚI</span>` : ""}${c.label ? esc(c.label) + (c.label_auto ? ` <span class="muted" style="font-weight:400;font-size:11px" title="Tên do tool tự dịch bằng máy — bấm ✎ để sửa">(tự dịch)</span>` : "") : `<span class="muted" style="font-weight:400">(đang dịch tên…)</span>`}
+          <button class="btn sm" data-dylbl="${esc(c.sec_uid)}" title="Tự đặt tên">✎</button>
+          <button class="btn sm" data-dyauto="${esc(c.sec_uid)}" title="Tự dịch lại tên tiếng Việt cho kênh và các phim bộ (giữ nguyên tên bạn tự đặt)">🪄</button></div>
           <div class="muted" style="font-size:12px">${esc(c.nickname)} · <a href="${esc(c.url)}" target="_blank">mở kênh</a></div></div></div></td>
       <td style="white-space:nowrap"><b>${c.downloaded}</b> / ${tot || "?"} video<div class="gem-bar"><i style="width:${pct}%"></i></div></td>
       <td style="white-space:nowrap">${c.downloaded ? `${dyDay(c.first_dl)} → <b>${dyDay(c.last_dl)}</b>` : `<span class="muted">chưa tải video nào</span>`}
@@ -2045,10 +2048,16 @@ async function dyLoadChannels() {
   const by = (id) => cs.find(c => c.sec_uid === id);
   $("#dyChBody").querySelectorAll("[data-dylbl]").forEach(b => b.onclick = async () => {
     const c = by(b.dataset.dylbl);
-    const v = prompt(`Tên gợi nhớ cho kênh "${c.nickname}":`, c.label || "");
+    const v = prompt(`Tên tiếng Việt cho kênh "${c.nickname}":`, c.label || "");
     if (v === null) return;
     await api("/api/dy/channels/" + encodeURIComponent(c.sec_uid), json("PUT", {label: v}));
     dyLoadChannels().then(dyRender);
+  });
+  $("#dyChBody").querySelectorAll("[data-dyauto]").forEach(b => b.onclick = async () => {
+    b.disabled = true; b.textContent = "…";
+    try { await api(`/api/dy/channels/${encodeURIComponent(b.dataset.dyauto)}/autoname`, {method: "POST"}); toast("Đã tự đặt tên tiếng Việt"); }
+    catch (e) { toast(e.message); }
+    await dyLoadChannels(); dyLoad();
   });
   $("#dyChBody").querySelectorAll("[data-dyre]").forEach(b => b.onclick = () => {
     const c = by(b.dataset.dyre);
@@ -2075,6 +2084,7 @@ async function dyLoad() {
     const [s, d] = await Promise.all([api("/api/dy/scan"), api("/api/dy/download")]);
     const justDone = (!DY.scan || DY.scan.running) && !s.running;
     if (justDone || (DY.dl && DY.dl.running && !d.running) || !DY.channels) await dyLoadChannels();
+    if (justDone && !s.running && s.items && s.items.length) setTimeout(() => dyLoadChannels().then(dyLoad), 4000);   // tên tự dịch chạy nền -> nạp lại
     DY.scan = s; DY.dl = d;
     // lấy danh sách xong -> chọn sẵn các video chưa tải
     if (justDone && !DY.sel.size) (s.items || []).filter(i => !i.is_image && !i.downloaded).forEach(i => DY.sel.add(i.aweme_id));

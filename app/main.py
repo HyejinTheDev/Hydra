@@ -1003,3 +1003,10 @@ def dy_group_label(body: DyGroupLabelIn):
     """Đặt tên tiếng Việt cho một phim bộ (dùng làm tên thư mục khi tải)."""
     douyin.set_group_label(body.sec_uid, body.gkey, body.label)
     return {"ok": True}
+
+
+@app.post("/api/dy/channels/{sec_uid}/autoname")
+def dy_channel_autoname(sec_uid: str):
+    """Tự đặt (dịch lại) tên tiếng Việt cho kênh + các phim bộ. Tên người dùng tự đặt được giữ nguyên."""
+    douyin.autoname(sec_uid, force=True)
+    return {"ok": True}
